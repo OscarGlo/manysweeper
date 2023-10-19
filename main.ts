@@ -1,12 +1,15 @@
+import * as fs from "fs";
 import { join } from "path";
-import { v4 } from "uuid";
+import { exec } from "child_process";
 import * as http from "http";
 import * as https from "https";
-import * as fs from "fs";
+
+import { v4 } from "uuid";
 import express from "express";
 import WebSocket, { WebSocketServer } from "ws";
 
 import { chord, countNeighborMines, generateMines, matrixFrom, open } from "./minesweeper";
+import logger from "signale";
 
 // CONFIG
 const PORT = process.env.PORT ?? (process.env.DEV ? "80" : "443");
@@ -17,6 +20,27 @@ const app = express();
 // HTTP
 
 app.use(express.static(PUBLIC_ROOT, { index: false }));
+
+app.post("/webhook", (req, res) => {
+   const log = logger.scope("webhook");
+   exec("git status", (err, stdout) => {
+      if (err) {
+         log.error("Error getting repository status:", err);
+      } else if (stdout.includes("Your branch is behind")) {
+         exec("git reset --hard HEAD && git pull", (err) => {
+            if (err) {
+               log.error("Error fetching repository:", err);
+            } else {
+               log.success("Github repository updated");
+            }
+         });
+      } else {
+         log.info("Branch up to date");
+      }
+      
+      res.sendStatus(200);
+   });
+});
 
 app.get("/", (req, res) => {
    res.sendFile(join(PUBLIC_ROOT, "index.html"));
@@ -30,7 +54,7 @@ const server = process.env.DEV
    }, app);
 
 server.listen(PORT, () => {
-   console.log(`Express app listening at https://localhost:${PORT}/`);
+   logger.success(`Express app listening at http${process.env.DEV ? "" : "s"}://localhost:${PORT}/`);
 });
 
 // WEBSOCKETS

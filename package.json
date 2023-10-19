@@ -2,17 +2,32 @@
 	"name": "manysweeper",
 	"version": "1.0.0",
 	"scripts": {
-		"start": "ts-node main"
+		"start": "nodemon main.ts"
 	},
 	"dependencies": {
 		"express": "^4.18.2",
+		"nodemon": "^3.0.1",
+		"signale": "^1.4.0",
+		"ts-node": "^10.9.1",
 		"uuid": "^9.0.1",
 		"ws": "^8.14.2"
 	},
 	"devDependencies": {
 		"@types/express": "^4.17.19",
 		"@types/ws": "^8.5.7",
-		"ts-node": "^10.9.1",
 		"typescript": "^5.2.2"
+	},
+	"nodemonConfig": {
+		"ext": "js,ts,json",
+		"ignore": [
+			"node_modules",
+			"public",
+			".idea"
+		],
+		"delay": 2
+	},
+	"signale": {
+		"displayDate": true,
+		"displayTimestamp": true
 	}
 }
