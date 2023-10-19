@@ -1,5 +1,3 @@
-const ws = new WebSocket("ws://" + location.host);
-
 let id;
 
 let boardState;
@@ -42,7 +40,7 @@ function draw() {
 			}
 
 			const n = row[x];
-			ctx.fillStyle = n >= 0 ? "#888" : "#aaa";
+			ctx.fillStyle = n >= 0 ? "#888888" : "#aaa";
 			ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
 
 			// Flag
@@ -89,7 +87,17 @@ function throttled(cb, delay) {
 	};
 }
 
-const sendPos = throttled((...pos) => ws.send(JSON.stringify({ type: "cursor", pos })), 20);
+let ws = new WebSocket("wss://" + location.host);
+
+function send(data) {
+	if (ws.readyState === WebSocket.OPEN)
+		ws.send(JSON.stringify(data));
+}
+
+const sendPos = throttled((...pos) => {
+	if (ws.readyState === WebSocket.OPEN)
+		send({ type: "cursor", pos });
+}, 20);
 
 canvas.addEventListener("mousemove", (evt) => {
 	sendPos(evt.clientX, evt.clientY);
@@ -103,7 +111,7 @@ canvas.addEventListener("mousedown", (evt) => {
 		const y = Math.floor(evt.clientY / TILE_SIZE);
 
 		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length)
-			ws.send(JSON.stringify({ type: button === 0 ? "click" : "flag", pos: [x, y] }));
+			send({ type: button === 0 ? "click" : "flag", pos: [x, y] });
 
 		evt.preventDefault();
 	}
@@ -111,7 +119,7 @@ canvas.addEventListener("mousedown", (evt) => {
 
 canvas.addEventListener("contextmenu", (evt) => evt.preventDefault());
 
-ws.addEventListener("message", (evt) => {
+function messageListener(evt) {
 	let data;
 	try {
 		data = JSON.parse(evt.data);
@@ -153,5 +161,13 @@ ws.addEventListener("message", (evt) => {
 			draw();
 			break;
 	}
-});
+}
 
+ws.addEventListener("message", messageListener);
+
+ws.addEventListener("error", (evt) => {
+	evt.preventDefault();
+
+	ws = new WebSocket("ws://" + location.host);
+	ws.addEventListener("message", messageListener);
+});
