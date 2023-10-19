@@ -27,11 +27,11 @@ app.post("/webhook", (req, res) => {
       if (err) {
          log.error("Error getting repository status:", err);
       } else if (stdout.includes("Your branch is behind")) {
-         exec("git reset --hard HEAD && git pull", (err) => {
+         exec("git reset --hard HEAD && git pull && npm install", (err) => {
             if (err) {
                log.error("Error fetching repository:", err);
             } else {
-               log.success("Github repository updated");
+               log.success("Branch and dependencies updated");
             }
          });
       } else {
