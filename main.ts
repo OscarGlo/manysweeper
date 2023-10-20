@@ -131,9 +131,10 @@ wss.on("connection", (ws, req) => {
    users[user.id] = user;
    
    ws.send(JSON.stringify({ type: "init", id: user.id, users }));
-   ws.send(JSON.stringify({ type: (win ? "win" : "board"), boardState }));
    if (failed)
-      ws.send(JSON.stringify({ type: "fail", mines }));
+      ws.send(JSON.stringify({ type: "fail", mines, boardState }));
+   else
+      ws.send(JSON.stringify({ type: (win ? "win" : "board"), boardState }));
    
    broadcast(JSON.stringify({ type: "connect", ...user }), ws);
    
@@ -157,7 +158,8 @@ wss.on("connection", (ws, req) => {
          
          if (mines[y][x]) {
             failed = true;
-            return broadcast({ type: "fail", mines });
+            boardState[y][x] = 0;
+            return broadcast({ type: "fail", mines, boardState });
          }
          
          if (state === -1)

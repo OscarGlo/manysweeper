@@ -7,77 +7,81 @@ let win;
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 
-const cursorImage = new Image();
-cursorImage.src = "img/cursor.png";
+function loadImage(path) {
+	const img = new Image();
+	img.src = "img/" + path + ".png";
+	return img;
+}
+
+const sprites = {
+	cursor: loadImage("cursor"),
+	tile: loadImage("tile"),
+	block: loadImage("block"),
+	flag: loadImage("flag"),
+	mine: loadImage("mine"),
+	mineHit: loadImage("mine_hit"),
+	mineWrong: loadImage("mine_wrong"),
+	numbers: [
+		null,
+		loadImage("number_1"),
+		loadImage("number_2"),
+		loadImage("number_3"),
+		loadImage("number_4"),
+		loadImage("number_5"),
+		loadImage("number_6"),
+		loadImage("number_7"),
+		loadImage("number_8")
+	]
+};
 
 let users = {};
 
-const TILE_SIZE = 30;
+const TILE_SIZE = 32;
+
+function drawTile(x, y, texture) {
+	ctx.drawImage(texture, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+}
 
 function draw() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	ctx.textAlign = "center";
-	ctx.textBaseline = "middle";
-	ctx.font = "bold 20px monospace";
-
+	ctx.imageSmoothingEnabled = false;
 	for (let y = 0; y < boardState.length; y++) {
 		let row = boardState[y];
 		for (let x = 0; x < row.length; x++) {
-			const tx = x * TILE_SIZE;
-			const cx = (x + 0.5) * TILE_SIZE;
-			const ty = y * TILE_SIZE;
-			const cy = (y + 0.5) * TILE_SIZE;
+			const n = row[x];
+
+			drawTile(x, y, n >= 0 || (mines && (mines[y][x] || n === -2)) ? sprites.tile : sprites.block);
 
 			if (mines && mines[y][x]) {
-				ctx.fillStyle = "#ff4444";
-				ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-
-				ctx.fillStyle = "black";
-				ctx.beginPath();
-				ctx.ellipse(cx, cy, 10, 10, 0, 0, 2 * Math.PI);
-				ctx.fill();
+				drawTile(x, y, sprites.tile);
+				drawTile(x, y, n === 0 ? sprites.mineHit : sprites.mine);
 				continue;
 			}
 
-			const n = row[x];
-			ctx.fillStyle = n >= 0 ? "#888888" : (win ? "#aaffaa" : "#aaaaaa");
-			ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-
-			// Flag
-			if (n === -2) {
-				ctx.fillStyle = "#ff4444";
-				ctx.beginPath();
-				ctx.moveTo(cx - 7, cy - 8);
-				ctx.lineTo(cx - 7, cy + 8);
-				ctx.lineTo(cx + 9, cy);
-				ctx.closePath();
-				ctx.fill();
-			}
-
-			// Number
-			if (n > 0) {
-
-				ctx.fillStyle = `hsl(${100 + n * 40}, 60%, 50%)`;
-				ctx.fillText(n, (x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE);
-			}
+			if (n === -2)
+				drawTile(x, y, mines ? sprites.mineWrong : sprites.flag);
+			else if (n > 0)
+				drawTile(x, y, sprites.numbers[n]);
 		}
 	}
 
+	ctx.textAlign = "center";
 	ctx.textBaseline = "hanging";
 	ctx.font = "normal 13px monospace";
+	ctx.imageSmoothingEnabled = true;
 
 	const MARGIN = 3;
 	Object.values(users)
 		.filter((user) => user.pos != null)
 		.forEach((user) => {
-			ctx.drawImage(cursorImage, user.pos[0], user.pos[1]);
+			ctx.drawImage(sprites.cursor, user.pos[0], user.pos[1]);
 
 			if (user.username) {
 				let displayName = user.username.length > 16 ? user.username.substring(0, 16) + "…" : user.username;
 
-				const x = user.pos[0] + cursorImage.width * 2 / 3;
-				const y = user.pos[1] + cursorImage.height + 6;
+				const x = user.pos[0] + sprites.cursor.width * 2 / 3;
+				const y = user.pos[1] + sprites.cursor.height + 6;
 
 				const metrics = ctx.measureText(displayName);
 				const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
@@ -176,6 +180,7 @@ function messageListener(evt) {
 
 		case "fail":
 			mines = data.mines;
+			boardState = data.boardState;
 			draw();
 			resetButton.disabled = false;
 			break;
