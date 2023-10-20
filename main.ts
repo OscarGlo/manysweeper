@@ -114,7 +114,10 @@ init();
 const users = {};
 
 wss.on("connection", (ws, req) => {
-   const cookies = cookie.parse(req.headers.cookie);
+   const cookies = cookie.parse(req.headers.cookie, { decode: (s: string) => {
+      const match = s.match(/^s:(.*)\.\w+$/);
+      return decodeURIComponent(match ? match[1] : s);
+   }});
    
    const user = {
       id: v4(),
