@@ -115,8 +115,12 @@ export function chord(boardState: number[][], mines: boolean[][], counts: number
          if (s === -1 && mines[y_][x_])
             failed = true;
       });
-      if (failed)
+      if (failed) {
+         forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
+            if (s === -1) boardState[y_][x_] = 0;
+         });
          return [boardState, true];
+      }
       
       forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
          if (s === -1)

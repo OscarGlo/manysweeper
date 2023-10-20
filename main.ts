@@ -170,7 +170,7 @@ wss.on("connection", (ws, req) => {
             [boardState, fail] = chord(boardState, mines, counts, data.pos);
             if (fail) {
                failed = true;
-               return broadcast({ type: "fail", mines });
+               return broadcast({ type: "fail", mines, boardState });
             }
          }
          
