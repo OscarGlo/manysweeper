@@ -153,6 +153,7 @@ wss.on("connection", (ws, req) => {
          
          if (firstClick) {
             mines = moveFirstMine(mines, [x, y]);
+            counts = countNeighborMines(mines);
             firstClick = false;
          }
          

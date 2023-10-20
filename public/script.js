@@ -62,7 +62,7 @@ function draw() {
 			}
 
 			if (n === -2)
-				drawTile(x, y, isMine ? sprites.flag : sprites.mineWrong);
+				drawTile(x, y, (!mines || isMine) ? sprites.flag : sprites.mineWrong);
 			else if (n > 0)
 				drawTile(x, y, sprites.numbers[n]);
 		}
