@@ -51,16 +51,18 @@ function draw() {
 		for (let x = 0; x < row.length; x++) {
 			const n = row[x];
 
-			drawTile(x, y, n >= 0 || (mines && (mines[y][x] || n === -2)) ? sprites.tile : sprites.block);
+			const isMine = mines && mines[y][x];
 
-			if (mines && mines[y][x]) {
+			drawTile(x, y, n >= 0 || (isMine && n !== -2) ? sprites.tile : sprites.block);
+
+			if (isMine && n !== -2) {
 				drawTile(x, y, sprites.tile);
 				drawTile(x, y, n === 0 ? sprites.mineHit : sprites.mine);
 				continue;
 			}
 
 			if (n === -2)
-				drawTile(x, y, mines ? sprites.mineWrong : sprites.flag);
+				drawTile(x, y, isMine ? sprites.flag : sprites.mineWrong);
 			else if (n > 0)
 				drawTile(x, y, sprites.numbers[n]);
 		}
