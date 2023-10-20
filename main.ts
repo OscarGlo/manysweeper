@@ -11,7 +11,7 @@ import cookieParser from "cookie-parser";
 import WebSocket, { WebSocketServer } from "ws";
 import cookie from "cookie";
 
-import { chord, countNeighborMines, generateMines, matrixFrom, open } from "./minesweeper";
+import { checkWin, chord, countNeighborMines, generateMines, matrixFrom, moveFirstMine, open } from "./minesweeper";
 import logger from "signale";
 
 import secrets from "./secrets.json";
@@ -86,6 +86,7 @@ server.listen(PORT, () => {
 
 // WEBSOCKETS
 const wss = new WebSocketServer({ server });
+const users = {};
 
 function broadcast(message: any, from?: WebSocket) {
    wss.clients.forEach((ws) => {
@@ -96,22 +97,25 @@ function broadcast(message: any, from?: WebSocket) {
 
 const WIDTH = 25;
 const HEIGHT = 15;
+const MINES = 65;
 
 let mines: boolean[][];
 let counts: number[][];
 let boardState: number[][];
+let firstClick: boolean;
 let failed: boolean;
+let win: boolean;
 
 function init() {
-   mines = generateMines(WIDTH, HEIGHT, 70);
+   mines = generateMines(WIDTH, HEIGHT, MINES);
    counts = countNeighborMines(mines);
    boardState = matrixFrom(WIDTH, HEIGHT, () => -1);
+   firstClick = true;
    failed = false;
+   win = false;
 }
 
 init();
-
-const users = {};
 
 wss.on("connection", (ws, req) => {
    const cookies = cookie.parse(req.headers.cookie, { decode: (encoded: string) => {
@@ -127,7 +131,7 @@ wss.on("connection", (ws, req) => {
    users[user.id] = user;
    
    ws.send(JSON.stringify({ type: "init", id: user.id, users }));
-   ws.send(JSON.stringify({ type: "board", boardState }));
+   ws.send(JSON.stringify({ type: (win ? "win" : "board"), boardState }));
    if (failed)
       ws.send(JSON.stringify({ type: "fail", mines }));
    
@@ -137,7 +141,7 @@ wss.on("connection", (ws, req) => {
       const data = JSON.parse(msg.toString());
       
       if (data.type === "click") {
-         if (failed) return;
+         if (failed || win) return;
          
          const x = data.pos[0];
          const y = data.pos[1];
@@ -145,6 +149,11 @@ wss.on("connection", (ws, req) => {
          
          if (state === -2)
             return;
+         
+         if (firstClick) {
+            mines = moveFirstMine(mines, [x, y]);
+            firstClick = false;
+         }
          
          if (mines[y][x]) {
             failed = true;
@@ -162,11 +171,12 @@ wss.on("connection", (ws, req) => {
             }
          }
          
-         return broadcast({ type: "board", boardState });
+         win = checkWin(boardState, mines);
+         return broadcast({ type: win ? "win" : "board", boardState });
       }
       
       if (data.type === "flag") {
-         if (failed) return;
+         if (failed || win) return;
          
          const x = data.pos[0];
          const y = data.pos[1];
@@ -175,16 +185,19 @@ wss.on("connection", (ws, req) => {
          // Toggle flag
          if (val < 0) {
             boardState[y][x] = val === -1 ? -2 : -1;
-            broadcast({ type: "board", boardState });
+            
+            win = checkWin(boardState, mines);
+            broadcast({ type: win ? "win" : "board", boardState });
          }
          return;
       }
       
       if (data.type === "reset") {
-         if (failed) {
+         if (failed || win) {
             init();
-            return broadcast({ type: "reset", boardState });
+            broadcast({ type: "reset", boardState });
          }
+         return;
       }
       
       data.id = user.id;

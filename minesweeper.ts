@@ -56,6 +56,26 @@ export function countNeighborMines(mines: boolean[][]): number[][] {
    });
 }
 
+export function moveFirstMine(mines: boolean[][], pos: [number, number]): boolean[][] {
+   const x = pos[0];
+   const y = pos[1];
+   
+   if (mines[y][x]) {
+      const positions = [];
+      for (let y_ in mines) {
+         for (let x_ in mines[y_]) {
+            if (!mines[y_][x_])
+               positions.push([x_, y_]);
+         }
+      }
+      const newPos = positions[Math.floor(Math.random() * positions.length)];
+      mines[y][x] = false;
+      mines[newPos[1]][newPos[0]] = true;
+   }
+   
+   return mines;
+}
+
 export function open(boardState: number[][], counts: number[][], pos: [number, number]): number[][] {
    const queue = [pos];
    const visited = [];
@@ -71,8 +91,9 @@ export function open(boardState: number[][], counts: number[][], pos: [number, n
       
       if (n > 0) continue;
       
+      const filtered = [...visited, ...queue];
       forEachNeighbor(boardState, [x, y], (_, x_, y_) => {
-         if (!visited.some(p => p[0] === x_ && p[1] === y_))
+         if (!filtered.some(p => p[0] === x_ && p[1] === y_))
             queue.unshift([x_, y_]);
       });
    }
@@ -103,4 +124,15 @@ export function chord(boardState: number[][], mines: boolean[][], counts: number
       });
    }
    return [boardState, false];
+}
+
+export function checkWin(boardState: number[][], mines: boolean[][]): boolean {
+   for (let y in boardState) {
+      const row = boardState[y];
+      for (let x in row) {
+         if (!mines[y][x] && row[x] < 0)
+            return false;
+      }
+   }
+   return true;
 }

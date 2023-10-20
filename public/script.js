@@ -2,6 +2,7 @@ let id;
 
 let boardState;
 let mines;
+let win;
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
@@ -40,7 +41,7 @@ function draw() {
 			}
 
 			const n = row[x];
-			ctx.fillStyle = n >= 0 ? "#888888" : "#aaaaaa";
+			ctx.fillStyle = n >= 0 ? "#888888" : (win ? "#aaffaa" : "#aaaaaa");
 			ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
 
 			// Flag
@@ -80,8 +81,8 @@ function draw() {
 
 				const metrics = ctx.measureText(displayName);
 				const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-				ctx.fillStyle = "rgba(0, 0, 0, 0.3)"
-				ctx.fillRect(x - metrics.width / 2 - MARGIN, y - MARGIN, metrics.width + MARGIN * 2, height + MARGIN * 2)
+				ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+				ctx.fillRect(x - metrics.width / 2 - MARGIN, y - MARGIN, metrics.width + MARGIN * 2, height + MARGIN * 2);
 
 				ctx.fillStyle = "white";
 				ctx.fillText(displayName, x, y);
@@ -141,6 +142,9 @@ canvas.addEventListener("mousedown", (evt) => {
 
 canvas.addEventListener("contextmenu", (evt) => evt.preventDefault());
 
+const resetButton = document.getElementById("reset");
+resetButton.addEventListener("click", () => send({ type: "reset" }));
+
 function messageListener(evt) {
 	let data;
 	try {
@@ -162,6 +166,8 @@ function messageListener(evt) {
 			break;
 
 		case "reset":
+			win = false;
+			resetButton.disabled = true;
 			mines = undefined;
 		case "board":
 			boardState = data.boardState;
@@ -171,6 +177,14 @@ function messageListener(evt) {
 		case "fail":
 			mines = data.mines;
 			draw();
+			resetButton.disabled = false;
+			break;
+
+		case "win":
+			win = true;
+			boardState = data.boardState;
+			draw();
+			resetButton.disabled = false;
 			break;
 
 		case "connect":
