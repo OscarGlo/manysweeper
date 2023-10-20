@@ -115,7 +115,7 @@ const users = {};
 
 wss.on("connection", (ws, req) => {
    const cookies = cookie.parse(req.headers.cookie, { decode: (s: string) => {
-      const match = s.match(/^s:(.*)\.\w+$/);
+      const match = s.match(/^s:(.*)\.[A-Za-z0-9+\/=]+$/);
       return decodeURIComponent(match ? match[1] : s);
    }});
    
