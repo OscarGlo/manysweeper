@@ -6,20 +6,51 @@ import * as https from "https";
 
 import { v4 } from "uuid";
 import express from "express";
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import WebSocket, { WebSocketServer } from "ws";
+import cookie from "cookie";
 
 import { chord, countNeighborMines, generateMines, matrixFrom, open } from "./minesweeper";
 import logger from "signale";
 
+import secrets from "./secrets.json";
+
 // CONFIG
-const PORT = process.env.PORT ?? (process.env.DEV ? "80" : "443");
+const DEV = process.env.DEV;
+const PORT = process.env.PORT ?? (DEV ? "80" : "443");
 const PUBLIC_ROOT = join(__dirname, "public");
 
 const app = express();
 
-// HTTP
-
 app.use(express.static(PUBLIC_ROOT, { index: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser(DEV ? undefined : secrets.cookie));
+
+// Login check middleware
+app.use((req, res, next) => {
+   if (req.path === "/login") return next();
+   
+   const cookies = DEV ? req.cookies : req.signedCookies;
+   if (!cookies["username"])
+      res.redirect("/login?redirect=" + req.url);
+   else
+      next();
+});
+
+// HTTP
+app.get("/", (req, res) => {
+   res.sendFile(join(PUBLIC_ROOT, "index.html"));
+});
+
+app.get("/login", (req, res) => {
+   res.sendFile(join(PUBLIC_ROOT, "login.html"));
+});
+
+app.post("/login", (req, res) => {
+   res.cookie("username", req.body.username, DEV ? undefined : { signed: true });
+   res.redirect(req.body.redirect ?? "/");
+});
 
 app.post("/webhook", (req, res) => {
    const log = logger.scope("webhook");
@@ -42,11 +73,7 @@ app.post("/webhook", (req, res) => {
    });
 });
 
-app.get("/", (req, res) => {
-   res.sendFile(join(PUBLIC_ROOT, "index.html"));
-});
-
-const server = process.env.DEV
+const server = DEV
    ? http.createServer(app)
    : https.createServer({
       key: fs.readFileSync("./ssl/private.key.pem"),
@@ -54,7 +81,7 @@ const server = process.env.DEV
    }, app);
 
 server.listen(PORT, () => {
-   logger.success(`Express app listening at http${process.env.DEV ? "" : "s"}://localhost:${PORT}/`);
+   logger.success(`Express app listening at http${DEV ? "" : "s"}://localhost:${PORT}/`);
 });
 
 // WEBSOCKETS
@@ -84,16 +111,26 @@ function init() {
 
 init();
 
-wss.on("connection", (ws) => {
-   const id = v4();
-   ws.send(JSON.stringify({ type: "init", id }));
+const users = {};
+
+wss.on("connection", (ws, req) => {
+   const cookies = cookie.parse(req.headers.cookie);
+   
+   const user = {
+      id: v4(),
+      username: cookies.username,
+   }
+   users[user.id] = user;
+   
+   ws.send(JSON.stringify({ type: "init", id: user.id, users }));
    ws.send(JSON.stringify({ type: "board", boardState }));
    if (failed)
       ws.send(JSON.stringify({ type: "fail", mines }));
    
+   broadcast(JSON.stringify({ type: "connect", ...user }), ws);
+   
    ws.on("message", (msg) => {
       const data = JSON.parse(msg.toString());
-      data.id = id;
       
       if (data.type === "click") {
          if (failed) return;
@@ -140,12 +177,15 @@ wss.on("connection", (ws) => {
       }
       
       if (data.type === "reset") {
-         init();
-         broadcast({ type: "reset", boardState });
+         if (failed) {
+            init();
+            return broadcast({ type: "reset", boardState });
+         }
       }
       
+      data.id = user.id;
       broadcast(data, ws);
    });
    
-   ws.on("close", () => broadcast({ type: "disconnect", id }));
+   ws.on("close", () => broadcast({ type: "disconnect", id: user.id }));
 });

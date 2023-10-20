@@ -9,18 +9,18 @@ const ctx = canvas.getContext("2d");
 const cursorImage = new Image();
 cursorImage.src = "img/cursor.png";
 
-const cursors = {};
+let users = {};
 
 const TILE_SIZE = 30;
 
 function draw() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	for (let y = 0; y < boardState.length; y++) {
-		ctx.textAlign = "center";
-		ctx.textBaseline = "middle";
-		ctx.font = "bold 20px monospace";
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+	ctx.font = "bold 20px monospace";
 
+	for (let y = 0; y < boardState.length; y++) {
 		let row = boardState[y];
 		for (let x = 0; x < row.length; x++) {
 			const tx = x * TILE_SIZE;
@@ -40,7 +40,7 @@ function draw() {
 			}
 
 			const n = row[x];
-			ctx.fillStyle = n >= 0 ? "#888888" : "#aaa";
+			ctx.fillStyle = n >= 0 ? "#888888" : "#aaaaaa";
 			ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
 
 			// Flag
@@ -56,15 +56,37 @@ function draw() {
 
 			// Number
 			if (n > 0) {
+
 				ctx.fillStyle = `hsl(${100 + n * 40}, 60%, 50%)`;
 				ctx.fillText(n, (x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE);
 			}
 		}
 	}
 
-	Object.values(cursors).forEach((pos) => {
-		ctx.drawImage(cursorImage, pos[0], pos[1]);
-	});
+	ctx.textBaseline = "hanging";
+	ctx.font = "normal 13px monospace";
+
+	const MARGIN = 3;
+	Object.values(users)
+		.filter((user) => user.pos != null)
+		.forEach((user) => {
+			ctx.drawImage(cursorImage, user.pos[0], user.pos[1]);
+
+			if (user.username) {
+				let displayName = user.username.length > 16 ? user.username.substring(0, 16) + "…" : user.username;
+
+				const x = user.pos[0] + cursorImage.width * 2 / 3;
+				const y = user.pos[1] + cursorImage.height + 6;
+
+				const metrics = ctx.measureText(displayName);
+				const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+				ctx.fillStyle = "rgba(0, 0, 0, 0.3)"
+				ctx.fillRect(x - metrics.width / 2 - MARGIN, y - MARGIN, metrics.width + MARGIN * 2, height + MARGIN * 2)
+
+				ctx.fillStyle = "white";
+				ctx.fillText(displayName, x, y);
+			}
+		});
 }
 
 function throttled(cb, delay) {
@@ -136,7 +158,7 @@ function messageListener(evt) {
 	switch (data.type) {
 		case "init":
 			id = data.id;
-			console.log("Initialized with id", id);
+			users = data.users;
 			break;
 
 		case "reset":
@@ -151,13 +173,21 @@ function messageListener(evt) {
 			draw();
 			break;
 
+		case "connect":
+			if (!users[data.id])
+				users[data.id] = {};
+			users[data.id].username = data.username;
+			break;
+
 		case "cursor":
-			cursors[data.id] = data.pos;
+			if (!users[data.id])
+				users[data.id] = {};
+			users[data.id].pos = data.pos;
 			draw();
 			break;
 
 		case "disconnect":
-			delete cursors[data.id];
+			delete users[data.id];
 			draw();
 			break;
 	}
