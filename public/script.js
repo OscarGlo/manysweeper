@@ -1,51 +1,163 @@
 let id;
 
 let boardState;
+let boardWidth = 0;
+let boardHeight = 0;
+let mineCount = 0;
+let timer = 0;
 let mines;
 let win;
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 
+let loadingCount = 0;
 function loadImage(path) {
+	loadingCount++;
 	const img = new Image();
 	img.src = "img/" + path + ".png";
+	img.addEventListener("load", () => {
+		loadingCount--;
+		if (loadingCount === 0)
+			draw();
+	});
 	return img;
 }
 
 const sprites = {
 	cursor: loadImage("cursor"),
-	tile: loadImage("tile"),
-	block: loadImage("block"),
-	flag: loadImage("flag"),
-	mine: loadImage("mine"),
-	mineHit: loadImage("mine_hit"),
-	mineWrong: loadImage("mine_wrong"),
+	tile: loadImage("board/tile"),
+	block: loadImage("board/block"),
+	flag: loadImage("board/flag"),
+	mine: loadImage("board/mine"),
+	mineHit: loadImage("board/mine_hit"),
+	mineWrong: loadImage("board/mine_wrong"),
 	numbers: [
 		null,
-		loadImage("number_1"),
-		loadImage("number_2"),
-		loadImage("number_3"),
-		loadImage("number_4"),
-		loadImage("number_5"),
-		loadImage("number_6"),
-		loadImage("number_7"),
-		loadImage("number_8")
-	]
+		loadImage("board/number_1"),
+		loadImage("board/number_2"),
+		loadImage("board/number_3"),
+		loadImage("board/number_4"),
+		loadImage("board/number_5"),
+		loadImage("board/number_6"),
+		loadImage("board/number_7"),
+		loadImage("board/number_8")
+	],
+	frame: {
+		topLeft: loadImage("frame/top_left"),
+		top: loadImage("frame/top"),
+		topRight: loadImage("frame/top_right"),
+		left: loadImage("frame/left"),
+		right: loadImage("frame/right"),
+		bottomLeft: loadImage("frame/bottom_left"),
+		bottom: loadImage("frame/bottom"),
+		bottomRight: loadImage("frame/bottom_right")
+	},
+	counter: {
+		left: loadImage("gui/counter_left"),
+		middle: loadImage("gui/counter_middle"),
+		right: loadImage("gui/counter_right"),
+		numbers: {
+			0: loadImage("gui/number_0"),
+			1: loadImage("gui/number_1"),
+			2: loadImage("gui/number_2"),
+			3: loadImage("gui/number_3"),
+			4: loadImage("gui/number_4"),
+			5: loadImage("gui/number_5"),
+			6: loadImage("gui/number_6"),
+			7: loadImage("gui/number_7"),
+			8: loadImage("gui/number_8"),
+			9: loadImage("gui/number_9"),
+			"-": loadImage("gui/number_minus")
+		}
+	},
+	button: {
+		normal: loadImage("gui/button"),
+		win: loadImage("gui/button_win"),
+		fail: loadImage("gui/button_fail")
+	}
 };
 
 let users = {};
 
+const GUI_SCALE = 2;
 const TILE_SIZE = 32;
 
 function drawTile(x, y, texture) {
-	ctx.drawImage(texture, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+	ctx.drawImage(
+		texture,
+		x * TILE_SIZE + sprites.frame.left.width * GUI_SCALE,
+		y * TILE_SIZE + sprites.frame.top.height * GUI_SCALE,
+		TILE_SIZE, TILE_SIZE
+	);
+}
+
+function counterWidth(length) {
+	return (sprites.counter.left.width + length * sprites.counter.numbers[0].width + sprites.counter.right.width) * GUI_SCALE;
+}
+
+function drawCounter(x, y, value, length) {
+	value = value.toString();
+	if (length) {
+		value = value.substring(0, length);
+
+		while (value.length < length) {
+			if (value.startsWith("-"))
+				value = "-0" + value.substring(1);
+			else
+				value = "0" + value;
+		}
+	}
+	const width = value.length * sprites.counter.numbers[0].width * GUI_SCALE;
+
+	ctx.drawImage(sprites.counter.left, x, y, sprites.counter.left.width * GUI_SCALE, sprites.counter.left.height * GUI_SCALE);
+	ctx.drawImage(sprites.counter.middle, x + sprites.counter.left.width * GUI_SCALE, y, width, sprites.counter.middle.height * GUI_SCALE);
+	ctx.drawImage(sprites.counter.right, x + sprites.counter.left.width * GUI_SCALE + width, y, sprites.counter.right.width * GUI_SCALE, sprites.counter.right.height * GUI_SCALE);
+
+	const yoff = (sprites.counter.left.height - sprites.counter.numbers[0].height);
+
+	for (let i = 0; i < value.length; i++) {
+		const n = value[i];
+		const sprite = sprites.counter.numbers[n];
+		ctx.drawImage(sprite, x + (sprites.counter.left.width + i * sprite.width) * GUI_SCALE, y + yoff, sprite.width * GUI_SCALE, sprite.height * GUI_SCALE);
+	}
+}
+
+function buttonPosSize() {
+	return [
+		sprites.frame.left.width * GUI_SCALE + (boardWidth - sprites.button.normal.width * GUI_SCALE) / 2,
+		30,
+		sprites.button.normal.width * GUI_SCALE,
+		sprites.button.normal.height * GUI_SCALE
+	];
 }
 
 function draw() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	ctx.imageSmoothingEnabled = false;
+
+	// Frame
+	ctx.drawImage(sprites.frame.topLeft, 0, 0, sprites.frame.left.width * GUI_SCALE, sprites.frame.top.height * GUI_SCALE);
+	ctx.drawImage(sprites.frame.top, sprites.frame.left.width * GUI_SCALE, 0, boardWidth, sprites.frame.topLeft.height * GUI_SCALE);
+	ctx.drawImage(sprites.frame.topRight, sprites.frame.left.width * GUI_SCALE + boardWidth, 0, sprites.frame.right.width * GUI_SCALE, sprites.frame.top.height * GUI_SCALE);
+
+	ctx.drawImage(sprites.frame.left, 0, sprites.frame.top.height * GUI_SCALE, sprites.frame.left.width * GUI_SCALE, boardHeight);
+	ctx.drawImage(sprites.frame.right, sprites.frame.left.width * GUI_SCALE + boardWidth, sprites.frame.top.height * GUI_SCALE, sprites.frame.right.width * GUI_SCALE, boardHeight);
+
+	ctx.drawImage(sprites.frame.bottomLeft, 0, sprites.frame.top.height * GUI_SCALE + boardHeight, sprites.frame.left.width * GUI_SCALE, sprites.frame.bottom.height * GUI_SCALE);
+	ctx.drawImage(sprites.frame.bottom, sprites.frame.left.width * GUI_SCALE, sprites.frame.top.height * GUI_SCALE + boardHeight, boardWidth, sprites.frame.bottom.height * GUI_SCALE);
+	ctx.drawImage(sprites.frame.bottomRight, sprites.frame.left.width * GUI_SCALE + boardWidth, sprites.frame.top.height * GUI_SCALE + boardHeight, sprites.frame.right.width * GUI_SCALE, sprites.frame.bottom.height * GUI_SCALE);
+
+	// GUI
+	const flagCount = boardState.flat().reduce((acc, s) => acc + (s === -2), 0);
+	drawCounter(32, 30, mineCount - flagCount, 3);
+
+	ctx.drawImage(win ? sprites.button.win : mines ? sprites.button.fail : sprites.button.normal, ...buttonPosSize());
+
+	drawCounter(canvas.width - 28 - counterWidth(3), 30, timer, 3);
+
+	// Board
 	for (let y = 0; y < boardState.length; y++) {
 		let row = boardState[y];
 		for (let x = 0; x < row.length; x++) {
@@ -68,6 +180,7 @@ function draw() {
 		}
 	}
 
+	// Cursors
 	ctx.textAlign = "center";
 	ctx.textBaseline = "hanging";
 	ctx.font = "normal 13px monospace";
@@ -129,15 +242,25 @@ const sendPos = throttled((...pos) => {
 }, 20);
 
 canvas.addEventListener("mousemove", (evt) => {
-	sendPos(evt.clientX, evt.clientY);
+	sendPos(...getMousePos(evt));
 });
 
+function getMousePos(evt) {
+	const rect = canvas.getBoundingClientRect();
+	return [evt.clientX - rect.left, evt.clientY - rect.top];
+}
+
 canvas.addEventListener("mousedown", (evt) => {
+	let [x, y] = getMousePos(evt);
 	const button = evt.button;
 
-	if (button === 0 || button === 2) {
-		const x = Math.floor(evt.clientX / TILE_SIZE);
-		const y = Math.floor(evt.clientY / TILE_SIZE);
+	const reset = buttonPosSize();
+
+	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3]) {
+		send({ type: "reset" })
+	} else if (button === 0 || button === 2) {
+		x = Math.floor((x - sprites.frame.left.width * GUI_SCALE) / TILE_SIZE);
+		y = Math.floor((y - sprites.frame.top.height * GUI_SCALE) / TILE_SIZE);
 
 		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length)
 			send({ type: button === 0 ? "click" : "flag", pos: [x, y] });
@@ -148,8 +271,18 @@ canvas.addEventListener("mousedown", (evt) => {
 
 canvas.addEventListener("contextmenu", (evt) => evt.preventDefault());
 
-const resetButton = document.getElementById("reset");
-resetButton.addEventListener("click", () => send({ type: "reset" }));
+function setBoardState(state) {
+	boardState = state;
+	boardWidth = boardState[0].length * TILE_SIZE;
+	boardHeight = boardState.length * TILE_SIZE;
+
+	if (canvas.width !== boardState[0].length)
+		canvas.width = boardWidth + (sprites.frame.left.width + sprites.frame.right.width) * GUI_SCALE;
+	if (canvas.height !== boardState.length)
+		canvas.height = boardHeight + (sprites.frame.top.height + sprites.frame.bottom.height) * GUI_SCALE;
+
+	draw();
+}
 
 function messageListener(evt) {
 	let data;
@@ -171,27 +304,30 @@ function messageListener(evt) {
 			users = data.users;
 			break;
 
+		case "timer":
+			timer = data.timer;
+			draw();
+			break;
+
 		case "reset":
 			win = false;
-			resetButton.disabled = true;
 			mines = undefined;
 		case "board":
-			boardState = data.boardState;
-			draw();
+			if (data.mineCount)
+				mineCount = data.mineCount;
+			setBoardState(data.boardState);
 			break;
 
 		case "fail":
 			mines = data.mines;
-			boardState = data.boardState;
-			draw();
-			resetButton.disabled = false;
+			if (data.mineCount)
+				mineCount = data.mineCount;
+			setBoardState(data.boardState);
 			break;
 
 		case "win":
 			win = true;
-			boardState = data.boardState;
-			draw();
-			resetButton.disabled = false;
+			setBoardState(data.boardState);
 			break;
 
 		case "connect":

@@ -29,59 +29,59 @@ app.use(cookieParser(DEV ? undefined : secrets.cookie));
 
 // Login check middleware
 app.use((req, res, next) => {
-   if (req.path === "/login") return next();
-   
-   const cookies = DEV ? req.cookies : req.signedCookies;
-   if (!cookies["username"])
-      res.redirect("/login?redirect=" + req.url);
-   else
-      next();
+	if (req.path === "/login") return next();
+
+	const cookies = DEV ? req.cookies : req.signedCookies;
+	if (!cookies["username"])
+		res.redirect("/login?redirect=" + req.url);
+	else
+		next();
 });
 
 // HTTP
 app.get("/", (req, res) => {
-   res.sendFile(join(PUBLIC_ROOT, "index.html"));
+	res.sendFile(join(PUBLIC_ROOT, "index.html"));
 });
 
 app.get("/login", (req, res) => {
-   res.sendFile(join(PUBLIC_ROOT, "login.html"));
+	res.sendFile(join(PUBLIC_ROOT, "login.html"));
 });
 
 app.post("/login", (req, res) => {
-   res.cookie("username", req.body.username, DEV ? undefined : { signed: true });
-   res.redirect(req.body.redirect ?? "/");
+	res.cookie("username", req.body.username, DEV ? undefined : { signed: true });
+	res.redirect(req.body.redirect ?? "/");
 });
 
 app.post("/webhook", (req, res) => {
-   const log = logger.scope("webhook");
-   exec("git status", (err, stdout) => {
-      if (err) {
-         log.error("Error getting repository status:", err);
-      } else if (stdout.includes("Your branch is behind")) {
-         exec("git reset --hard HEAD && git pull && npm install", (err) => {
-            if (err) {
-               log.error("Error fetching repository:", err);
-            } else {
-               log.success("Branch and dependencies updated");
-            }
-         });
-      } else {
-         log.info("Branch up to date");
-      }
-      
-      res.sendStatus(200);
-   });
+	const log = logger.scope("webhook");
+	exec("git status", (err, stdout) => {
+		if (err) {
+			log.error("Error getting repository status:", err);
+		} else if (stdout.includes("Your branch is behind")) {
+			exec("git reset --hard HEAD && git pull && npm install", (err) => {
+				if (err) {
+					log.error("Error fetching repository:", err);
+				} else {
+					log.success("Branch and dependencies updated");
+				}
+			});
+		} else {
+			log.info("Branch up to date");
+		}
+
+		res.sendStatus(200);
+	});
 });
 
 const server = DEV
-   ? http.createServer(app)
-   : https.createServer({
-      key: fs.readFileSync("./ssl/private.key.pem"),
-      cert: fs.readFileSync("./ssl/domain.cert.pem")
-   }, app);
+	? http.createServer(app)
+	: https.createServer({
+		key: fs.readFileSync("./ssl/private.key.pem"),
+		cert: fs.readFileSync("./ssl/domain.cert.pem")
+	}, app);
 
 server.listen(PORT, () => {
-   logger.success(`Express app listening at http${DEV ? "" : "s"}://localhost:${PORT}/`);
+	logger.success(`Express app listening at http${DEV ? "" : "s"}://localhost:${PORT}/`);
 });
 
 // WEBSOCKETS
@@ -89,15 +89,15 @@ const wss = new WebSocketServer({ server });
 const users = {};
 
 function broadcast(message: any, from?: WebSocket) {
-   wss.clients.forEach((ws) => {
-      if (ws !== from)
-         ws.send(typeof message === "string" ? message : JSON.stringify(message));
-   });
+	wss.clients.forEach((ws) => {
+		if (ws !== from)
+			ws.send(typeof message === "string" ? message : JSON.stringify(message));
+	});
 }
 
-const WIDTH = 25;
-const HEIGHT = 15;
-const MINES = 65;
+const WIDTH = 30;
+const HEIGHT = 16;
+const mineCount = 99;
 
 let mines: boolean[][];
 let counts: number[][];
@@ -106,106 +106,137 @@ let firstClick: boolean;
 let failed: boolean;
 let win: boolean;
 
+let timer = 0;
+let timerInterval;
+
 function init() {
-   mines = generateMines(WIDTH, HEIGHT, MINES);
-   counts = countNeighborMines(mines);
-   boardState = matrixFrom(WIDTH, HEIGHT, () => -1);
-   firstClick = true;
-   failed = false;
-   win = false;
+	mines = generateMines(WIDTH, HEIGHT, mineCount);
+	counts = countNeighborMines(mines);
+	boardState = matrixFrom(WIDTH, HEIGHT, () => -1);
+	firstClick = true;
+	failed = false;
+	win = false;
+
+	stopTimer();
+	timer = 0;
+	broadcast({ type: "timer", timer });
 }
 
 init();
 
+function initTimer() {
+	if (!timerInterval)
+		timerInterval = setInterval(() => {
+			timer++;
+			broadcast({ type: "timer", timer });
+		}, 1000);
+}
+
+function stopTimer() {
+	clearInterval(timerInterval);
+	timerInterval = undefined;
+}
+
+function fail() {
+	failed = true;
+	stopTimer();
+	broadcast({ type: "fail", mines, boardState });
+}
+
 wss.on("connection", (ws, req) => {
-   const cookies = cookie.parse(req.headers.cookie, { decode: (encoded: string) => {
-      const string = decodeURIComponent(encoded);
-      const match = string.match(/^s:(.*)\.[A-Za-z0-9+\/=]+$/);
-      return match ? match[1] : string;
-   }});
-   
-   const user = {
-      id: v4(),
-      username: cookies.username,
-   }
-   users[user.id] = user;
-   
-   ws.send(JSON.stringify({ type: "init", id: user.id, users }));
-   if (failed)
-      ws.send(JSON.stringify({ type: "fail", mines, boardState }));
-   else
-      ws.send(JSON.stringify({ type: (win ? "win" : "board"), boardState }));
-   
-   broadcast(JSON.stringify({ type: "connect", ...user }), ws);
-   
-   ws.on("message", (msg) => {
-      const data = JSON.parse(msg.toString());
-      
-      if (data.type === "click") {
-         if (failed || win) return;
-         
-         const x = data.pos[0];
-         const y = data.pos[1];
-         const state = boardState[y][x];
-         
-         if (state === -2)
-            return;
-         
-         if (firstClick) {
-            mines = moveFirstMine(mines, [x, y]);
-            counts = countNeighborMines(mines);
-            firstClick = false;
-         }
-         
-         if (mines[y][x]) {
-            failed = true;
-            boardState[y][x] = 0;
-            return broadcast({ type: "fail", mines, boardState });
-         }
-         
-         if (state === -1)
-            boardState = open(boardState, counts, data.pos);
-         else if (state > 0) {
-            let fail;
-            [boardState, fail] = chord(boardState, mines, counts, data.pos);
-            if (fail) {
-               failed = true;
-               return broadcast({ type: "fail", mines, boardState });
-            }
-         }
-         
-         win = checkWin(boardState, mines);
-         return broadcast({ type: win ? "win" : "board", boardState });
-      }
-      
-      if (data.type === "flag") {
-         if (failed || win) return;
-         
-         const x = data.pos[0];
-         const y = data.pos[1];
-         const val = boardState[y][x];
-         
-         // Toggle flag
-         if (val < 0) {
-            boardState[y][x] = val === -1 ? -2 : -1;
-            
-            win = checkWin(boardState, mines);
-            broadcast({ type: win ? "win" : "board", boardState });
-         }
-         return;
-      }
-      
-      if (data.type === "reset") {
-         if (failed || win) {
-            init();
-            broadcast({ type: "reset", boardState });
-         }
-         return;
-      }
-      
-      data.id = user.id;
-      broadcast(data, ws);
-   });
-   
-   ws.on("close", () => broadcast({ type: "disconnect", id: user.id }));
+	const cookies = cookie.parse(req.headers.cookie, {
+		decode: (encoded: string) => {
+			const string = decodeURIComponent(encoded);
+			const match = string.match(/^s:(.*)\.[A-Za-z0-9+\/=]+$/);
+			return match ? match[1] : string;
+		}
+	});
+
+	const user = {
+		id: v4(),
+		username: cookies.username
+	};
+	users[user.id] = user;
+
+	ws.send(JSON.stringify({ type: "init", id: user.id, users }));
+	if (failed)
+		ws.send(JSON.stringify({ type: "fail", mines, mineCount, boardState }));
+	else
+		ws.send(JSON.stringify({ type: (win ? "win" : "board"), mineCount, boardState }));
+
+	ws.send(JSON.stringify({ type: "timer", timer }));
+
+	broadcast(JSON.stringify({ type: "connect", ...user }), ws);
+
+	ws.on("message", (msg) => {
+		const data = JSON.parse(msg.toString());
+
+		if (data.type === "click") {
+			if (failed || win) return;
+
+			initTimer();
+
+			const x = data.pos[0];
+			const y = data.pos[1];
+			const state = boardState[y][x];
+
+			if (state === -2)
+				return;
+
+			if (firstClick) {
+				mines = moveFirstMine(mines, [x, y]);
+				counts = countNeighborMines(mines);
+				firstClick = false;
+			}
+
+			if (mines[y][x]) {
+				boardState[y][x] = 0;
+				return fail();
+			}
+
+			if (state === -1)
+				boardState = open(boardState, counts, data.pos);
+			else if (state > 0) {
+				let fail;
+				[boardState, fail] = chord(boardState, mines, counts, data.pos);
+				if (fail)
+					return fail();
+			}
+
+			win = checkWin(boardState, mines);
+			if (win) stopTimer();
+			return broadcast({ type: win ? "win" : "board", boardState });
+		}
+
+		if (data.type === "flag") {
+			if (failed || win) return;
+
+			initTimer();
+
+			const x = data.pos[0];
+			const y = data.pos[1];
+			const val = boardState[y][x];
+
+			// Toggle flag
+			if (val < 0) {
+				boardState[y][x] = val === -1 ? -2 : -1;
+
+				broadcast({ type: "board", boardState });
+			}
+			return;
+		}
+
+		if (data.type === "reset") {
+			if (failed || win) {
+				init();
+				broadcast({ type: "reset", mineCount, boardState });
+			}
+			return;
+		}
+
+		data.id = user.id;
+		broadcast(data, ws);
+	});
+
+	ws.on("close", () => broadcast({ type: "disconnect", id: user.id }));
 });
