@@ -163,8 +163,8 @@ wss.on("connection", (ws, req) => {
 	// @ts-ignore
 	const user = {
 		id: v4(),
-		username: cookies.username,
-		color: rgb2hsl(...hex2rgb(cookies.color))
+		username: cookies.username ?? "Guest",
+		color: cookies.color ? rgb2hsl(...hex2rgb(cookies.color)) : "#ff0000"
 	};
 	users.push(user);
 
