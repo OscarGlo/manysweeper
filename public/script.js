@@ -272,12 +272,12 @@ canvas.addEventListener("mousedown", (evt) => {
 
 	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3]) {
 		send({ type: "reset" });
-	} else if (button === 0 || button === 2) {
+	} else if (button === 0 || button === 1 || button === 2) {
 		x = Math.floor((x - sprites.frame.left.width * GUI_SCALE) / TILE_SIZE);
 		y = Math.floor((y - sprites.frame.top.height * GUI_SCALE) / TILE_SIZE);
 
 		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length)
-			send({ type: button === 0 ? "click" : "flag", pos: [x, y] });
+			send({ type: button === 0 ? "click" : button === 1 ? "chord" : "flag" , pos: [x, y] });
 
 		evt.preventDefault();
 	}

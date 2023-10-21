@@ -181,30 +181,31 @@ wss.on("connection", (ws, req) => {
 	ws.on("message", (msg) => {
 		const data = JSON.parse(msg.toString());
 
-		if (data.type === "click") {
+		if (data.type === "click" || data.type === "chord") {
 			if (failed || win) return;
-
 			initTimer();
 
 			const x = data.pos[0];
 			const y = data.pos[1];
 			const state = boardState[y][x];
 
-			if (state === -2)
-				return;
+			if (data.type === "click") {
+				if (state === -2)
+					return;
 
-			if (firstClick) {
-				mines = moveFirstMine(mines, [x, y]);
-				counts = countNeighborMines(mines);
-				firstClick = false;
+				if (firstClick) {
+					mines = moveFirstMine(mines, [x, y]);
+					counts = countNeighborMines(mines);
+					firstClick = false;
+				}
+
+				if (mines[y][x]) {
+					boardState[y][x] = 0;
+					return fail();
+				}
 			}
 
-			if (mines[y][x]) {
-				boardState[y][x] = 0;
-				return fail();
-			}
-
-			if (state === -1)
+			if (state === -1 && data.type !== "chord")
 				boardState = open(boardState, counts, data.pos);
 			else if (state > 0) {
 				let failed;
