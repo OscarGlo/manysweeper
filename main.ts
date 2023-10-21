@@ -197,9 +197,9 @@ wss.on("connection", (ws, req) => {
 			if (state === -1)
 				boardState = open(boardState, counts, data.pos);
 			else if (state > 0) {
-				let fail;
-				[boardState, fail] = chord(boardState, mines, counts, data.pos);
-				if (fail)
+				let failed;
+				[boardState, failed] = chord(boardState, mines, counts, data.pos);
+				if (failed)
 					return fail();
 			}
 
