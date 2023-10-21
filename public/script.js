@@ -18,8 +18,10 @@ function loadImage(path) {
 	img.src = "img/" + path + ".png";
 	img.addEventListener("load", () => {
 		loadingCount--;
-		if (loadingCount === 0)
+		if (loadingCount === 0) {
 			draw();
+			updateBoardSize(true);
+		}
 	});
 	return img;
 }
@@ -271,16 +273,25 @@ canvas.addEventListener("mousedown", (evt) => {
 
 canvas.addEventListener("contextmenu", (evt) => evt.preventDefault());
 
-function setBoardState(state) {
-	boardState = state;
+function updateBoardSize(redraw = false) {
 	boardWidth = boardState[0].length * TILE_SIZE;
 	boardHeight = boardState.length * TILE_SIZE;
 
-	if (canvas.width !== boardState[0].length)
+	let change = false;
+	if (canvas.width !== boardState[0].length) {
+		change = true;
 		canvas.width = boardWidth + (sprites.frame.left.width + sprites.frame.right.width) * GUI_SCALE;
-	if (canvas.height !== boardState.length)
+	}
+	if (canvas.height !== boardState.length) {
+		change = true;
 		canvas.height = boardHeight + (sprites.frame.top.height + sprites.frame.bottom.height) * GUI_SCALE;
+	}
+	if (change && redraw) draw();
+}
 
+function setBoardState(state) {
+	boardState = state;
+	updateBoardSize();
 	draw();
 }
 
