@@ -127,7 +127,7 @@ init();
 function initTimer() {
 	if (!timerInterval)
 		timerInterval = setInterval(() => {
-			timer++;
+			if (timer < 999) timer++;
 			broadcast({ type: "timer", timer });
 		}, 1000);
 }
