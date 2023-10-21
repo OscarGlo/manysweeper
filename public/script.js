@@ -6,12 +6,14 @@ let boardHeight = 0;
 let mineCount = 0;
 let timer = 0;
 let mines;
+let flags;
 let win;
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 
 let loadingCount = 0;
+
 function loadImage(path) {
 	loadingCount++;
 	const img = new Image();
@@ -176,7 +178,18 @@ function draw() {
 			}
 
 			if (n === -2)
-				drawTile(x, y, (!mines || isMine) ? sprites.flag : sprites.mineWrong);
+				if (!mines || isMine) {
+					const flagUser = users[flags[y][x]];
+					if (flagUser) {
+						const color = flagUser.color;
+						const brightness = Math.floor(color[2] * 200 + Math.max(color[2] - 0.5, 0) * 600);
+						ctx.filter = `hue-rotate(${color[0]}deg) saturate(${Math.floor(color[1] * 100)}%) brightness(${brightness}%)`;
+					}
+					drawTile(x, y, sprites.flag);
+					ctx.filter = "none";
+				} else {
+					drawTile(x, y, sprites.mineWrong);
+				}
 			else if (n > 0)
 				drawTile(x, y, sprites.numbers[n]);
 		}
@@ -189,8 +202,7 @@ function draw() {
 	ctx.imageSmoothingEnabled = true;
 
 	const MARGIN = 3;
-	Object.values(users)
-		.filter((user) => user.pos != null)
+	users.filter((user) => user.pos != null)
 		.forEach((user) => {
 			ctx.drawImage(sprites.cursor, user.pos[0], user.pos[1]);
 
@@ -259,7 +271,7 @@ canvas.addEventListener("mousedown", (evt) => {
 	const reset = buttonPosSize();
 
 	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3]) {
-		send({ type: "reset" })
+		send({ type: "reset" });
 	} else if (button === 0 || button === 2) {
 		x = Math.floor((x - sprites.frame.left.width * GUI_SCALE) / TILE_SIZE);
 		y = Math.floor((y - sprites.frame.top.height * GUI_SCALE) / TILE_SIZE);
@@ -303,62 +315,53 @@ function messageListener(evt) {
 		console.warn(`Non JSON data received: ${evt.data}`);
 	}
 
-	if (data == null || data.type == null) {
+	if (data == null) {
 		console.warn(`Invalid JSON data received: ${evt.data}`);
 		return;
 	}
 
-	// noinspection FallThroughInSwitchStatementJS
-	switch (data.type) {
-		case "init":
-			id = data.id;
-			users = data.users;
-			break;
+	if (data.flags) flags = data.flags;
+	if (data.mineCount) mineCount = data.mineCount;
+	if (data.mines) mines = data.mines;
+	if (data.boardState) setBoardState(data.boardState);
 
-		case "timer":
-			timer = data.timer;
-			draw();
-			break;
+	if (data.type)
+		// noinspection FallThroughInSwitchStatementJS
+		switch (data.type) {
+			case "init":
+				id = data.id;
+				users = data.users;
+				break;
 
-		case "reset":
-			win = false;
-			mines = undefined;
-		case "board":
-			if (data.mineCount)
-				mineCount = data.mineCount;
-			setBoardState(data.boardState);
-			break;
+			case "timer":
+				timer = data.timer;
+				draw();
+				break;
 
-		case "fail":
-			mines = data.mines;
-			if (data.mineCount)
-				mineCount = data.mineCount;
-			setBoardState(data.boardState);
-			break;
+			case "reset":
+				win = false;
+				mines = undefined;
+				break;
 
-		case "win":
-			win = true;
-			setBoardState(data.boardState);
-			break;
+			case "win":
+				win = true;
+				break;
 
-		case "connect":
-			if (!users[data.id])
-				users[data.id] = {};
-			users[data.id].username = data.username;
-			break;
+			case "connect":
+				users.push(data.user);
+				break;
 
-		case "cursor":
-			if (!users[data.id])
-				users[data.id] = {};
-			users[data.id].pos = data.pos;
-			draw();
-			break;
+			case "cursor":
+				const user = users.find(u => u.id === data.id);
+				if (user) user.pos = data.pos;
+				break;
 
-		case "disconnect":
-			delete users[data.id];
-			draw();
-			break;
-	}
+			case "disconnect":
+				users = users.filter(u => u.id !== data.id);
+				break;
+		}
+
+	draw();
 }
 
 ws.addEventListener("message", messageListener);

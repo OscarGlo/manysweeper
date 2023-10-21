@@ -10,9 +10,10 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import WebSocket, { WebSocketServer } from "ws";
 import cookie from "cookie";
+import logger from "signale";
 
 import { checkWin, chord, countNeighborMines, generateMines, matrixFrom, moveFirstMine, open } from "./minesweeper";
-import logger from "signale";
+import { hex2rgb, rgb2hsl } from "./color";
 
 import secrets from "./secrets.json";
 
@@ -47,8 +48,13 @@ app.get("/login", (req, res) => {
 	res.sendFile(join(PUBLIC_ROOT, "login.html"));
 });
 
+function saveCookie(res: express.Response, key: string, value: string) {
+	res.cookie(key, value, DEV ? undefined : { signed: true });
+}
+
 app.post("/login", (req, res) => {
-	res.cookie("username", req.body.username, DEV ? undefined : { signed: true });
+	saveCookie(res, "username", req.body.username);
+	saveCookie(res, "color", req.body.color);
 	res.redirect(req.body.redirect ?? "/");
 });
 
@@ -86,7 +92,7 @@ server.listen(PORT, () => {
 
 // WEBSOCKETS
 const wss = new WebSocketServer({ server });
-const users = {};
+let users = [];
 
 function broadcast(message: any, from?: WebSocket) {
 	wss.clients.forEach((ws) => {
@@ -102,6 +108,7 @@ const mineCount = 99;
 let mines: boolean[][];
 let counts: number[][];
 let boardState: number[][];
+let flags: number[][];
 let firstClick: boolean;
 let failed: boolean;
 let win: boolean;
@@ -113,6 +120,7 @@ function init() {
 	mines = generateMines(WIDTH, HEIGHT, mineCount);
 	counts = countNeighborMines(mines);
 	boardState = matrixFrom(WIDTH, HEIGHT, () => -1);
+	flags = matrixFrom(WIDTH, HEIGHT, () => -1);
 	firstClick = true;
 	failed = false;
 	win = false;
@@ -152,21 +160,23 @@ wss.on("connection", (ws, req) => {
 		}
 	});
 
+	// @ts-ignore
 	const user = {
 		id: v4(),
-		username: cookies.username
+		username: cookies.username,
+		color: rgb2hsl(...hex2rgb(cookies.color))
 	};
-	users[user.id] = user;
+	users.push(user);
 
 	ws.send(JSON.stringify({ type: "init", id: user.id, users }));
 	if (failed)
-		ws.send(JSON.stringify({ type: "fail", mines, mineCount, boardState }));
+		ws.send(JSON.stringify({ flags, mines, mineCount, boardState }));
 	else
-		ws.send(JSON.stringify({ type: (win ? "win" : "board"), mineCount, boardState }));
+		ws.send(JSON.stringify({ type: (win ? "win" : undefined), flags, mineCount, boardState }));
 
 	ws.send(JSON.stringify({ type: "timer", timer }));
 
-	broadcast(JSON.stringify({ type: "connect", ...user }), ws);
+	broadcast(JSON.stringify({ type: "connect", user }), ws);
 
 	ws.on("message", (msg) => {
 		const data = JSON.parse(msg.toString());
@@ -205,7 +215,7 @@ wss.on("connection", (ws, req) => {
 
 			win = checkWin(boardState, mines);
 			if (win) stopTimer();
-			return broadcast({ type: win ? "win" : "board", boardState });
+			return broadcast({ type: win ? "win" : undefined, boardState });
 		}
 
 		if (data.type === "flag") {
@@ -219,9 +229,14 @@ wss.on("connection", (ws, req) => {
 
 			// Toggle flag
 			if (val < 0) {
-				boardState[y][x] = val === -1 ? -2 : -1;
-
-				broadcast({ type: "board", boardState });
+				const flag = val === -1;
+				boardState[y][x] = flag ? -2 : -1;
+				if (flag) {
+					flags[y][x] = users.findIndex(u => u.id === user.id);
+					broadcast({ flags, boardState });
+				} else {
+					broadcast({ boardState });
+				}
 			}
 			return;
 		}
@@ -229,7 +244,7 @@ wss.on("connection", (ws, req) => {
 		if (data.type === "reset") {
 			if (failed || win) {
 				init();
-				broadcast({ type: "reset", mineCount, boardState });
+				broadcast({ type: "reset", mineCount, flags, boardState });
 			}
 			return;
 		}
@@ -238,5 +253,19 @@ wss.on("connection", (ws, req) => {
 		broadcast(data, ws);
 	});
 
-	ws.on("close", () => broadcast({ type: "disconnect", id: user.id }));
+	ws.on("close", () => {
+		const userIndex = users.findIndex(u => u.id === user.id);
+		users.splice(userIndex, 1);
+
+		flags.forEach((row, y) => {
+			row.forEach((flag, x) => {
+				if (flag > userIndex)
+					flags[y][x]--;
+				if (flag === userIndex)
+					flags[y][x] = -1;
+			});
+		});
+
+		broadcast({ type: "disconnect", id: user.id, flags });
+	});
 });
