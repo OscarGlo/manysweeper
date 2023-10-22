@@ -1,10 +1,12 @@
+const { deserializeMessage, formatMessageData, MessageType, serializeMessage } = require("/lib/messages.js");
+
 let id;
 
-let boardState;
+let boardState = [[]];
 let boardWidth = 0;
 let boardHeight = 0;
 let mineCount = 0;
-let timer = 0;
+let time = 0;
 let mines;
 let flags;
 let win;
@@ -154,12 +156,12 @@ function draw() {
 	ctx.drawImage(sprites.frame.bottomRight, sprites.frame.left.width * GUI_SCALE + boardWidth, sprites.frame.top.height * GUI_SCALE + boardHeight, sprites.frame.right.width * GUI_SCALE, sprites.frame.bottom.height * GUI_SCALE);
 
 	// GUI
-	const flagCount = boardState.flat().reduce((acc, s) => acc + (s === -2), 0);
+	const flagCount = boardState.flat().reduce((acc, s) => acc + (s === 10), 0);
 	drawCounter(32, 30, mineCount - flagCount, 3);
 
 	ctx.drawImage(win ? sprites.button.win : mines ? sprites.button.fail : sprites.button.normal, ...buttonPosSize());
 
-	drawCounter(canvas.width - 28 - counterWidth(3), 30, timer, 3);
+	drawCounter(canvas.width - 28 - counterWidth(3), 30, time, 3);
 
 	// Board
 	for (let y = 0; y < boardState.length; y++) {
@@ -169,28 +171,28 @@ function draw() {
 
 			const isMine = mines && mines[y][x];
 
-			drawTile(x, y, n >= 0 || (isMine && n !== -2) ? sprites.tile : sprites.block);
+			drawTile(x, y, n < 8 || (isMine && n !== 10) ? sprites.tile : sprites.block);
 
-			if (isMine && n !== -2) {
+			if (isMine && n !== 10) {
 				drawTile(x, y, sprites.tile);
 				drawTile(x, y, n === 0 ? sprites.mineHit : sprites.mine);
 				continue;
 			}
 
-			if (n === -2)
+			if (n === 10)
 				if (!mines || isMine) {
 					const flagUser = users[flags[y][x]];
 					if (flagUser) {
 						const color = flagUser.color;
-						const brightness = Math.floor(color[2] * 200 + Math.max(color[2] - 0.5, 0) * 600);
-						ctx.filter = `hue-rotate(${color[0]}deg) saturate(${Math.floor(color[1] * 100)}%) brightness(${brightness}%)`;
+						const brightness = Math.floor(color[2] * 2 + Math.max(color[2] - 50, 0) * 6);
+						ctx.filter = `hue-rotate(${color[0]}deg) saturate(${Math.floor(color[1])}%) brightness(${brightness}%)`;
 					}
 					drawTile(x, y, sprites.flag);
 					ctx.filter = "none";
 				} else {
 					drawTile(x, y, sprites.mineWrong);
 				}
-			else if (n > 0)
+			else if (n > 0 && n <= 8)
 				drawTile(x, y, sprites.numbers[n]);
 		}
 	}
@@ -202,7 +204,8 @@ function draw() {
 	ctx.imageSmoothingEnabled = true;
 
 	const MARGIN = 3;
-	users.filter((user) => user.pos != null)
+	Object.values(users)
+		.filter((user) => user.pos != null)
 		.forEach((user) => {
 			ctx.drawImage(sprites.cursor, user.pos[0], user.pos[1]);
 
@@ -221,6 +224,27 @@ function draw() {
 				ctx.fillText(displayName, x, y);
 			}
 		});
+}
+
+const CURSOR_SMOOTHING = 0.5;
+
+setInterval(() => {
+	Object.values(users)
+		.forEach((user) => {
+			if (user.pos && user.nextPos)
+				user.pos = [
+					CURSOR_SMOOTHING * user.pos[0] + (1 - CURSOR_SMOOTHING) * user.nextPos[0],
+					CURSOR_SMOOTHING * user.pos[1] + (1 - CURSOR_SMOOTHING) * user.nextPos[1]
+				];
+		});
+	draw();
+}, 1000 / 60);
+
+let ws = new WebSocket("wss://" + location.host);
+
+function send(data) {
+	if (ws.readyState === WebSocket.OPEN)
+		ws.send(serializeMessage(data));
 }
 
 function throttled(cb, delay) {
@@ -243,17 +267,14 @@ function throttled(cb, delay) {
 	};
 }
 
-let ws = new WebSocket("wss://" + location.host);
-
-function send(data) {
-	if (ws.readyState === WebSocket.OPEN)
-		ws.send(JSON.stringify(data));
-}
-
 const sendPos = throttled((...pos) => {
-	if (ws.readyState === WebSocket.OPEN)
-		send({ type: "cursor", pos });
-}, 20);
+	if (ws.readyState === WebSocket.OPEN) {
+		const x = Math.floor(pos[0]);
+		const y = Math.floor(pos[1]);
+
+		send([MessageType.CURSOR, id, x, y]);
+	}
+}, 50)
 
 canvas.addEventListener("mousemove", (evt) => {
 	sendPos(...getMousePos(evt));
@@ -271,13 +292,13 @@ canvas.addEventListener("mousedown", (evt) => {
 	const reset = buttonPosSize();
 
 	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3]) {
-		send({ type: "reset" });
+		send([MessageType.RESET]);
 	} else if (button === 0 || button === 1 || button === 2) {
 		x = Math.floor((x - sprites.frame.left.width * GUI_SCALE) / TILE_SIZE);
 		y = Math.floor((y - sprites.frame.top.height * GUI_SCALE) / TILE_SIZE);
 
 		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length)
-			send({ type: button === 0 ? "click" : button === 1 ? "chord" : "flag" , pos: [x, y] });
+			send([button === 0 ? MessageType.TILE : button === 1 ? MessageType.CHORD : MessageType.FLAG, x, y]);
 
 		evt.preventDefault();
 	}
@@ -301,65 +322,92 @@ function updateBoardSize(redraw = false) {
 	if (change && redraw) draw();
 }
 
-function setBoardState(state) {
-	boardState = state;
-	updateBoardSize();
-	draw();
+function unflatten(arr) {
+	return new Array(16).fill(0).map((_, i) => arr.slice(i * 30, (i + 1) * 30));
 }
 
-function messageListener(evt) {
-	let data;
-	try {
-		data = JSON.parse(evt.data);
-	} catch (e) {
-		console.warn(`Non JSON data received: ${evt.data}`);
+async function messageListener(evt) {
+	const buf = await evt.data.arrayBuffer();
+	const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
+
+	switch (msg.type) {
+		case MessageType.INIT:
+			id = msg.id;
+			mineCount = msg.mineCount;
+			flags = unflatten(msg.flags);
+			break;
+
+		case MessageType.USER:
+			users[msg.id] = {
+				id: msg.id,
+				color: [msg.hue, msg.saturation, msg.lightness],
+				username: msg.username.substring(0, msg.usernameLength)
+			}
+			break;
+
+		case MessageType.DISCONNECT:
+			delete users[msg.id];
+			for (let y = 0; y < boardState.length; y++) {
+				for (let x = 0; x < boardState[0].length; x++) {
+					if (boardState[y][x] === msg.id)
+						boardState[y][x] = 0;
+				}
+			}
+			break;
+
+		case MessageType.CURSOR:
+			const user = users[msg.id];
+			if (user) {
+				const pos = [msg.x, msg.y];
+
+				if (!user.pos) user.pos = pos;
+				else user.nextPos = pos;
+			}
+			break;
+
+		case MessageType.TIMER:
+			time = msg.time;
+			break;
+
+		case MessageType.TICK:
+			time++;
+			break;
+
+		// case MessageType.TILE:
+		// 	break;
+
+		// case MessageType.CHORD:
+		// 	break;
+
+		case MessageType.BOARD:
+			boardState = unflatten(msg.tiles);
+			updateBoardSize();
+			break;
+
+		case MessageType.FLAG:
+			flags[msg.y][msg.x] = msg.id;
+			boardState[msg.y][msg.x] = boardState[msg.y][msg.x] === 9 ? 10 : 9;
+			break;
+
+		case MessageType.WIN:
+			win = true;
+			break;
+
+		case MessageType.LOSE:
+			mines = unflatten(msg.mines.map(m => !!m));
+			break;
+
+		case MessageType.RESET:
+			mineCount = msg.mineCount;
+			for (let y = 0; y < boardState.length; y++) {
+				for (let x = 0; x < boardState[0].length; x++) {
+					boardState[y][x] = 9;
+				}
+			}
+			mines = undefined;
+			win = false;
+			break;
 	}
-
-	if (data == null) {
-		console.warn(`Invalid JSON data received: ${evt.data}`);
-		return;
-	}
-
-	if (data.flags) flags = data.flags;
-	if (data.mineCount) mineCount = data.mineCount;
-	if (data.mines) mines = data.mines;
-	if (data.boardState) setBoardState(data.boardState);
-
-	if (data.type)
-		// noinspection FallThroughInSwitchStatementJS
-		switch (data.type) {
-			case "init":
-				id = data.id;
-				users = data.users;
-				break;
-
-			case "timer":
-				timer = data.timer;
-				draw();
-				break;
-
-			case "reset":
-				win = false;
-				mines = undefined;
-				break;
-
-			case "win":
-				win = true;
-				break;
-
-			case "connect":
-				users.push(data.user);
-				break;
-
-			case "cursor":
-				const user = users.find(u => u.id === data.id);
-				if (user) user.pos = data.pos;
-				break;
-
-			case "disconnect":
-				users = users.filter(u => u.id !== data.id);
-				break;
-		}
 
 	draw();
 }

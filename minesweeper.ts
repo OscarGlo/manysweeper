@@ -1,3 +1,6 @@
+export const WALL = 9;
+export const FLAG = 10;
+
 function shuffle(arr: any[]) {
 	arr = [...arr];
 	const len = arr.length;
@@ -106,24 +109,24 @@ export function chord(boardState: number[][], mines: boolean[][], counts: number
 
 	let flagCount = 0;
 	forEachNeighbor(boardState, [x, y], (s) => {
-		if (s === -2) flagCount++;
+		if (s === FLAG) flagCount++;
 	});
 	if (flagCount === counts[y][x]) {
 		// Check for mines
 		let failed = false;
 		forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
-			if (s === -1 && mines[y_][x_])
+			if (s === WALL && mines[y_][x_])
 				failed = true;
 		});
 		if (failed) {
 			forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
-				if (s === -1) boardState[y_][x_] = 0;
+				if (s === WALL) boardState[y_][x_] = 0;
 			});
 			return [boardState, true];
 		}
 
 		forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
-			if (s === -1)
+			if (s === WALL)
 				boardState = open(boardState, counts, [x_, y_]);
 		});
 	}
@@ -134,7 +137,7 @@ export function checkWin(boardState: number[][], mines: boolean[][]): boolean {
 	for (let y in boardState) {
 		const row = boardState[y];
 		for (let x in row) {
-			if (!mines[y][x] && row[x] < 0)
+			if (!mines[y][x] && row[x] > 8)
 				return false;
 		}
 	}

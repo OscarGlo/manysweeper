@@ -4,7 +4,6 @@ import { exec } from "child_process";
 import * as http from "http";
 import * as https from "https";
 
-import { v4 } from "uuid";
 import express from "express";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -12,10 +11,22 @@ import WebSocket, { WebSocketServer } from "ws";
 import cookie from "cookie";
 import logger from "signale";
 
-import { checkWin, chord, countNeighborMines, generateMines, matrixFrom, moveFirstMine, open } from "./minesweeper";
+import { deserializeMessage, formatMessageData, MessageType, serializeMessage } from "./lib/messages.js";
+
+import {
+	checkWin,
+	chord,
+	countNeighborMines,
+	FLAG,
+	generateMines,
+	matrixFrom,
+	moveFirstMine,
+	open,
+	WALL
+} from "./minesweeper";
 import { hex2rgb, rgb2hsl } from "./color";
 
-import secrets from "./secrets.json";
+const secrets = JSON.parse(fs.readFileSync("./secrets.json").toString());
 
 // CONFIG
 const DEV = process.env.DEV;
@@ -92,14 +103,7 @@ server.listen(PORT, () => {
 
 // WEBSOCKETS
 const wss = new WebSocketServer({ server });
-let users = [];
-
-function broadcast(message: any, from?: WebSocket) {
-	wss.clients.forEach((ws) => {
-		if (ws !== from)
-			ws.send(typeof message === "string" ? message : JSON.stringify(message));
-	});
-}
+let users = {};
 
 const WIDTH = 30;
 const HEIGHT = 16;
@@ -113,30 +117,42 @@ let firstClick: boolean;
 let failed: boolean;
 let win: boolean;
 
-let timer = 0;
+let time = 0;
 let timerInterval;
 
 function init() {
 	mines = generateMines(WIDTH, HEIGHT, mineCount);
 	counts = countNeighborMines(mines);
-	boardState = matrixFrom(WIDTH, HEIGHT, () => -1);
-	flags = matrixFrom(WIDTH, HEIGHT, () => -1);
+	boardState = matrixFrom(WIDTH, HEIGHT, () => WALL);
+	flags = matrixFrom(WIDTH, HEIGHT, () => 0);
 	firstClick = true;
 	failed = false;
 	win = false;
 
 	stopTimer();
-	timer = 0;
-	broadcast({ type: "timer", timer });
+	time = 0;
 }
 
 init();
 
+function broadcast(message: any, from?: WebSocket) {
+	wss.clients.forEach((ws) => {
+		if (ws !== from)
+			ws.send(
+				message instanceof Uint8Array ? message : serializeMessage(message),
+				{ binary: true }
+			);
+	});
+}
+
 function initTimer() {
 	if (!timerInterval)
 		timerInterval = setInterval(() => {
-			if (timer < 999) timer++;
-			broadcast({ type: "timer", timer });
+			time++;
+			broadcast([MessageType.TICK]);
+
+			if (time >= 999)
+				stopTimer();
 		}, 1000);
 }
 
@@ -148,7 +164,26 @@ function stopTimer() {
 function fail() {
 	failed = true;
 	stopTimer();
-	broadcast({ type: "fail", mines, boardState });
+	broadcast([MessageType.BOARD, boardState.flat()]);
+	broadcast([MessageType.LOSE, mines.flat()]);
+}
+
+const ids = {};
+
+const INVALID_ID = 0;
+
+function getId() {
+	for (let i = 1; i < 255; i++) {
+		if (!ids[i]) {
+			ids[i] = true;
+			return i;
+		}
+	}
+	return null;
+}
+
+function userMessageData(user) {
+	return [MessageType.USER, user.id, ...user.color, user.username.length, user.username];
 }
 
 wss.on("connection", (ws, req) => {
@@ -160,113 +195,117 @@ wss.on("connection", (ws, req) => {
 		}
 	});
 
+	function send(message) {
+		ws.send(serializeMessage(message), { binary: true });
+	}
+
 	// @ts-ignore
 	const user = {
-		id: v4(),
+		id: getId(),
 		username: cookies.username ?? "Guest",
-		color: cookies.color ? rgb2hsl(...hex2rgb(cookies.color)) : "#ff0000"
+		color: cookies.color ? rgb2hsl(...hex2rgb(cookies.color)) : [0, 100, 50]
 	};
-	users.push(user);
+	users[user.id] = user;
 
-	ws.send(JSON.stringify({ type: "init", id: user.id, users }));
+	send([MessageType.INIT, user.id, mineCount, flags.flat()]);
+	Object.values(users).forEach(user => send(userMessageData(user)));
+	send([MessageType.TIMER, time]);
+	send([MessageType.BOARD, boardState.flat()]);
+
 	if (failed)
-		ws.send(JSON.stringify({ flags, mines, mineCount, boardState }));
-	else
-		ws.send(JSON.stringify({ type: (win ? "win" : undefined), flags, mineCount, boardState }));
+		send([MessageType.LOSE, mines.flat()]);
+	else if (win)
+		send([MessageType.WIN]);
 
-	ws.send(JSON.stringify({ type: "timer", timer }));
+	broadcast(userMessageData(user), ws);
 
-	broadcast(JSON.stringify({ type: "connect", user }), ws);
+	ws.on("message", (data) => {
+		const msg = formatMessageData(deserializeMessage(new Uint8Array(data as ArrayBuffer)));
 
-	ws.on("message", (msg) => {
-		const data = JSON.parse(msg.toString());
+		const { x, y } = msg;
 
-		if (data.type === "click" || data.type === "chord") {
-			if (failed || win) return;
-			initTimer();
+		switch (msg.type) {
+			case MessageType.TILE:
+			case MessageType.CHORD:
+				if (failed || win) return;
+				initTimer();
 
-			const x = data.pos[0];
-			const y = data.pos[1];
-			const state = boardState[y][x];
+				const state = boardState[y][x];
 
-			if (data.type === "click") {
-				if (state === -2)
-					return;
+				if (msg.type === MessageType.TILE) {
+					if (state === FLAG)
+						return;
 
-				if (firstClick) {
-					mines = moveFirstMine(mines, [x, y]);
-					counts = countNeighborMines(mines);
-					firstClick = false;
+					if (firstClick) {
+						mines = moveFirstMine(mines, [x, y]);
+						counts = countNeighborMines(mines);
+						firstClick = false;
+					}
+
+					if (mines[y][x]) {
+						boardState[y][x] = 0;
+						return fail();
+					}
 				}
 
-				if (mines[y][x]) {
-					boardState[y][x] = 0;
-					return fail();
+				if (state === WALL && msg.type === MessageType.TILE)
+					boardState = open(boardState, counts, [x, y]);
+				else if (state > 0) {
+					let failed;
+					[boardState, failed] = chord(boardState, mines, counts, [x, y]);
+					if (failed)
+						return fail();
 				}
-			}
 
-			if (state === -1 && data.type !== "chord")
-				boardState = open(boardState, counts, data.pos);
-			else if (state > 0) {
-				let failed;
-				[boardState, failed] = chord(boardState, mines, counts, data.pos);
-				if (failed)
-					return fail();
-			}
+				broadcast([MessageType.BOARD, boardState.flat()]);
 
-			win = checkWin(boardState, mines);
-			if (win) stopTimer();
-			return broadcast({ type: win ? "win" : undefined, boardState });
-		}
-
-		if (data.type === "flag") {
-			if (failed || win) return;
-
-			initTimer();
-
-			const x = data.pos[0];
-			const y = data.pos[1];
-			const val = boardState[y][x];
-
-			// Toggle flag
-			if (val < 0) {
-				const flag = val === -1;
-				boardState[y][x] = flag ? -2 : -1;
-				if (flag) {
-					flags[y][x] = users.findIndex(u => u.id === user.id);
-					broadcast({ flags, boardState });
-				} else {
-					broadcast({ boardState });
+				win = checkWin(boardState, mines);
+				if (win) {
+					stopTimer();
+					broadcast([MessageType.WIN]);
 				}
-			}
-			return;
-		}
+				break;
 
-		if (data.type === "reset") {
-			if (failed || win) {
-				init();
-				broadcast({ type: "reset", mineCount, flags, boardState });
-			}
-			return;
-		}
+			case MessageType.FLAG:
+				if (failed || win) return;
 
-		data.id = user.id;
-		broadcast(data, ws);
+				initTimer();
+
+				const val = boardState[y][x];
+
+				// Toggle flag
+				if (val > 8) {
+					const flag = val === WALL;
+					boardState[y][x] = flag ? FLAG : WALL;
+					if (flag) flags[y][x] = user.id;
+					broadcast([MessageType.FLAG, x, y, user.id]);
+				}
+				break;
+
+			case MessageType.RESET:
+				if (failed || win) {
+					init();
+					broadcast([MessageType.RESET, mineCount]);
+				}
+				break;
+
+			default:
+				broadcast(data, ws);
+				break;
+		}
 	});
 
 	ws.on("close", () => {
-		const userIndex = users.findIndex(u => u.id === user.id);
-		users.splice(userIndex, 1);
+		delete users[user.id];
+		delete ids[user.id];
 
 		flags.forEach((row, y) => {
 			row.forEach((flag, x) => {
-				if (flag > userIndex)
-					flags[y][x]--;
-				if (flag === userIndex)
-					flags[y][x] = -1;
+				if (flag === user.id)
+					flags[y][x] = INVALID_ID;
 			});
 		});
 
-		broadcast({ type: "disconnect", id: user.id, flags });
+		broadcast([MessageType.DISCONNECT, user.id]);
 	});
 });

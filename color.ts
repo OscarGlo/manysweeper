@@ -38,5 +38,5 @@ export function rgb2hsl(r: number, g: number, b: number): [number, number, numbe
 
 	s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
-	return [h, s, l];
+	return [h, s * 100, l * 100];
 }
