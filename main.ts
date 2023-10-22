@@ -152,7 +152,7 @@ function fail() {
 }
 
 wss.on("connection", (ws, req) => {
-	const cookies = cookie.parse(req.headers.cookie, {
+	const cookies = cookie.parse(req.headers.cookie ?? "", {
 		decode: (encoded: string) => {
 			const string = decodeURIComponent(encoded);
 			const match = string.match(/^s:(.*)\.[A-Za-z0-9+\/=]+$/);
