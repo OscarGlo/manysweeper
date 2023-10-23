@@ -349,8 +349,8 @@ async function messageListener(evt) {
 			delete users[msg.id];
 			for (let y = 0; y < boardState.length; y++) {
 				for (let x = 0; x < boardState[0].length; x++) {
-					if (boardState[y][x] === msg.id)
-						boardState[y][x] = 0;
+					if (flags[y][x] === msg.id)
+						flags[y][x] = 0;
 				}
 			}
 			break;
