@@ -341,7 +341,7 @@ async function messageListener(evt) {
 			users[msg.id] = {
 				id: msg.id,
 				color: [msg.hue, msg.saturation, msg.lightness],
-				username: msg.username.substring(0, msg.usernameLength)
+				username: msg.username
 			}
 			break;
 

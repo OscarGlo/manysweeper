@@ -183,7 +183,7 @@ function getId() {
 }
 
 function userMessageData(user) {
-	return [MessageType.USER, user.id, ...user.color, user.username.length, user.username];
+	return [MessageType.USER, user.id, ...user.color, user.username];
 }
 
 wss.on("connection", (ws, req) => {
