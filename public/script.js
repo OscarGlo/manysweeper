@@ -404,6 +404,7 @@ async function messageListener(evt) {
 					boardState[y][x] = 9;
 				}
 			}
+			time = 0;
 			mines = undefined;
 			win = false;
 			break;
