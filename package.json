@@ -2,7 +2,7 @@
 	"name": "manysweeper",
 	"version": "1.0.0",
 	"scripts": {
-		"build": "browserify -r ./lib/messages.js -r ./lib/serialization.js -o ./public/bundle.js",
+		"build": "browserify -r ./lib/messages.js -r ./lib/serialization.js -r ./lib/hole.js | uglifyjs > public/bundle.js",
 		"start": "nodemon main.ts"
 	},
 	"dependencies": {
@@ -14,6 +14,7 @@
 		"nodemon": "^3.0.1",
 		"signale": "^1.4.0",
 		"ts-node": "^10.9.1",
+		"uglify-js": "^3.17.4",
 		"uuid": "^9.0.1",
 		"ws": "^8.14.2"
 	},

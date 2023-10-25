@@ -79,20 +79,42 @@ export function moveFirstMine(mines: boolean[][], pos: [number, number]): boolea
 	return mines;
 }
 
-export function open(boardState: number[][], counts: number[][], pos: [number, number]): number[][] {
+function neighbor(a: [number, number], b: [number, number]): boolean {
+	return (a[0] === b[0] && (a[1] === b[1] - 1 || a[1] === b[1] + 1))
+		|| (a[1] === b[1] && (a[0] === b[0] - 1 || a[0] === b[0] + 1));
+}
+
+export function open(boardState: number[][], counts: number[][], pos: [number, number]): [number[][], [number, number][][]] {
 	const queue = [pos];
 	const visited = [];
+	const borders = [];
 	while (queue.length > 0) {
-		const next = queue.pop();
-		visited.push(next);
+		const p = queue.pop();
+		visited.push(p);
 
-		const x = next[0];
-		const y = next[1];
+		const x = p[0];
+		const y = p[1];
 
 		const n = counts[y][x];
 		boardState[y][x] = n;
 
-		if (n > 0) continue;
+		if (n > 0) {
+			let added = false;
+			for (const border of borders) {
+				if (neighbor(p, border[0])) {
+					border.unshift(p);
+					added = true;
+					break;
+				}
+				if (border.length > 1 && neighbor(p, border[border.length - 1])) {
+					border.push(p);
+					added = true;
+					break;
+				}
+			}
+			if (!added) borders.push([p]);
+			continue;
+		}
 
 		const filtered = [...visited, ...queue];
 		forEachNeighbor(boardState, [x, y], (_, x_, y_) => {
@@ -100,10 +122,40 @@ export function open(boardState: number[][], counts: number[][], pos: [number, n
 				queue.unshift([x_, y_]);
 		});
 	}
-	return boardState;
+
+	for (let cur = 0; cur < borders.length; cur++) {
+		const border = borders[cur];
+
+		for (let i = cur + 1; i < borders.length; i++) {
+			const toAdd = borders[i];
+
+			let added = false;
+			if (neighbor(border[0], toAdd[0])) {
+				border.unshift(...toAdd.reverse());
+				added = true;
+			} else if (neighbor(border[0], toAdd[toAdd.length - 1])) {
+				border.unshift(...toAdd);
+				added = true;
+			} else if (neighbor(border[border.length - 1], toAdd[0])) {
+				border.push(...toAdd);
+				added = true;
+			} else if (neighbor(border[border.length - 1], toAdd[toAdd.length - 1])) {
+				border.push(...toAdd.reverse());
+				added = true;
+			}
+
+
+			if (added) {
+				borders.splice(i, 1);
+				i = cur;
+			}
+		}
+	}
+
+	return [boardState, borders];
 }
 
-export function chord(boardState: number[][], mines: boolean[][], counts: number[][], pos: any): [number[][], boolean] {
+export function chord(boardState: number[][], mines: boolean[][], counts: number[][], pos: any): [number[][], boolean, [number, number][][]] {
 	const x = pos[0];
 	const y = pos[1];
 
@@ -111,6 +163,7 @@ export function chord(boardState: number[][], mines: boolean[][], counts: number
 	forEachNeighbor(boardState, [x, y], (s) => {
 		if (s === FLAG) flagCount++;
 	});
+	let borders = [];
 	if (flagCount === counts[y][x]) {
 		// Check for mines
 		let failed = false;
@@ -122,15 +175,21 @@ export function chord(boardState: number[][], mines: boolean[][], counts: number
 			forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
 				if (s === WALL) boardState[y_][x_] = 0;
 			});
-			return [boardState, true];
+			return [boardState, true, []];
 		}
 
 		forEachNeighbor(boardState, [x, y], (s, x_, y_) => {
-			if (s === WALL)
-				boardState = open(boardState, counts, [x_, y_]);
+			if (s === WALL) {
+				let tileBorders;
+				[boardState, tileBorders] = open(boardState, counts, [x_, y_]);
+				borders.push(...tileBorders);
+			} else {
+				borders.push([[x_, y_]]);
+			}
 		});
 	}
-	return [boardState, false];
+	// TODO: Check for same borders
+	return [boardState, false, borders];
 }
 
 export function checkWin(boardState: number[][], mines: boolean[][]): boolean {

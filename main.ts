@@ -12,6 +12,7 @@ import cookie from "cookie";
 import logger from "signale";
 
 import { deserializeMessage, formatMessageData, MessageType, serializeMessage } from "./lib/messages.js";
+import { getHoleMessage } from "./lib/hole.js";
 
 import {
 	checkWin,
@@ -164,7 +165,6 @@ function stopTimer() {
 function fail() {
 	failed = true;
 	stopTimer();
-	broadcast([MessageType.BOARD, boardState.flat()]);
 	broadcast([MessageType.LOSE, mines.flat()]);
 }
 
@@ -232,10 +232,10 @@ wss.on("connection", (ws, req) => {
 
 				const state = boardState[y][x];
 
-				if (msg.type === MessageType.TILE) {
-					if (state === FLAG)
-						return;
+				if (state === 0 || state === FLAG)
+					return;
 
+				if (msg.type === MessageType.TILE) {
 					if (firstClick) {
 						mines = moveFirstMine(mines, [x, y]);
 						counts = countNeighborMines(mines);
@@ -244,20 +244,57 @@ wss.on("connection", (ws, req) => {
 
 					if (mines[y][x]) {
 						boardState[y][x] = 0;
+						send([MessageType.TILE, x, y]);
 						return fail();
 					}
 				}
 
-				if (state === WALL && msg.type === MessageType.TILE)
-					boardState = open(boardState, counts, [x, y]);
-				else if (state > 0) {
+				const isTile = state === WALL && counts[y][x] !== 0;
+				let borders;
+
+				if (state === WALL && msg.type === MessageType.TILE) {
+					if (isTile)
+						boardState[y][x] = counts[y][x];
+					else
+						[boardState, borders] = open(boardState, counts, [x, y]);
+				} else if (state > 0) {
 					let failed;
-					[boardState, failed] = chord(boardState, mines, counts, [x, y]);
-					if (failed)
+					[boardState, failed, borders] = chord(boardState, mines, counts, [x, y]);
+					if (failed) {
+						send([MessageType.CHORD, x, y]);
 						return fail();
+					}
 				}
 
-				broadcast([MessageType.BOARD, boardState.flat()]);
+				if (isTile)
+					broadcast([MessageType.TILE, x, y, boardState[y][x]]);
+				else {
+					let minX = x, minY = y, maxX = x, maxY = y;
+					for (const pos of borders.flat()) {
+						if (pos[0] < minX) minX = pos[0];
+						if (pos[0] > maxX) maxX = pos[0];
+						if (pos[1] < minY) minY = pos[1];
+						if (pos[1] > maxY) maxY = pos[1];
+					}
+					if (maxX - minX === 2 && maxY - minY === 2) {
+						const tiles = [];
+						for (let y_ = minY; y_ <= maxY; y_++) {
+							for (let x_ = minX; x_ <= maxX; x_++) {
+								tiles.push(boardState[y_][x_] < 8 ? counts[y_][x_] : 0);
+							}
+						}
+						broadcast([MessageType.CHORD, minX + 1, minY + 1, tiles]);
+					} else {
+						for (const border of borders) {
+							if (border.length > 1)
+								broadcast(getHoleMessage(border, counts, [x, y]));
+							else {
+								const [x, y] = border[0];
+								broadcast([MessageType.TILE, x, y, boardState[y][x]]);
+							}
+						}
+					}
+				}
 
 				win = checkWin(boardState, mines);
 				if (win) {
@@ -289,7 +326,7 @@ wss.on("connection", (ws, req) => {
 				}
 				break;
 
-			default:
+			case MessageType.CURSOR:
 				broadcast(data, ws);
 				break;
 		}

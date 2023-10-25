@@ -1,4 +1,5 @@
 const { deserializeMessage, formatMessageData, MessageType, serializeMessage } = require("/lib/messages.js");
+const { openHole } = require("/lib/hole.js");
 
 let id;
 
@@ -330,6 +331,9 @@ async function messageListener(evt) {
 	const buf = await evt.data.arrayBuffer();
 	const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
 
+	if (msg.type !== MessageType.TICK)
+		console.log(msg);
+
 	switch (msg.type) {
 		case MessageType.INIT:
 			id = msg.id;
@@ -373,11 +377,24 @@ async function messageListener(evt) {
 			time++;
 			break;
 
-		// case MessageType.TILE:
-		// 	break;
+		case MessageType.TILE:
+			boardState[msg.y][msg.x] = msg.tile ?? 0;
+			break;
 
-		// case MessageType.CHORD:
-		// 	break;
+		case MessageType.CHORD:
+			let i = 0;
+			for (let y = Math.max(0, msg.y - 1); y <= Math.min(boardState.length - 1, msg.y + 1); y++) {
+				for (let x = Math.max(0, msg.x - 1); x <= Math.min(boardState[0].length - 1, msg.x + 1); x++) {
+					if (boardState[y][x] === 9)
+						boardState[y][x] = msg.tiles?.[i] ?? 0;
+					i++;
+				}
+			}
+			break;
+
+		case MessageType.HOLE:
+			openHole(boardState, msg);
+			break;
 
 		case MessageType.BOARD:
 			boardState = unflatten(msg.tiles);
