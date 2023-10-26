@@ -1,0 +1,35 @@
+.settings-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+.settings-cog {
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.settings-dropdown {
+    display: none;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    position: absolute;
+    top: 30px;
+    right: 0;
+    width: 200px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+#settingsButton {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    text-align: left;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+#settingsButton:hover {
+    background-color: #f5f5f5;
+}

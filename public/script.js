@@ -11,9 +11,14 @@ let time = 0;
 let mines;
 let flags;
 let win;
+let performanceMode = false;
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
+
+const settingsCog = document.getElementById('settingsCog');
+const settingsDropdown = document.getElementById('settingsDropdown');
+const settingsButton = document.getElementById('settingsButton');
 
 let loadingCount = 0;
 
@@ -84,6 +89,14 @@ const sprites = {
 		fail: loadImage("gui/button_fail")
 	}
 };
+
+settingsCog.addEventListener('click', function() {
+	settingsDropdown.style.display = settingsDropdown.style.display !== 'block' ? 'block' : 'none';
+});
+
+settingsButton.addEventListener('click', function() {
+    performanceMode = !performanceMode;
+});
 
 let users = {};
 
@@ -205,26 +218,28 @@ function draw() {
 	ctx.imageSmoothingEnabled = true;
 
 	const MARGIN = 3;
-	Object.values(users)
-		.filter((user) => user.pos != null)
-		.forEach((user) => {
-			ctx.drawImage(sprites.cursor, user.pos[0], user.pos[1]);
+	if (!performanceMode) {
+		Object.values(users)
+			.filter((user) => user.pos != null)
+			.forEach((user) => {
+				ctx.drawImage(sprites.cursor, user.pos[0], user.pos[1]);
 
-			if (user.username) {
-				let displayName = user.username.length > 16 ? user.username.substring(0, 16) + "…" : user.username;
+				if (user.username) {
+					let displayName = user.username.length > 16 ? user.username.substring(0, 16) + "…" : user.username;
 
-				const x = user.pos[0] + sprites.cursor.width * 2 / 3;
-				const y = user.pos[1] + sprites.cursor.height + 6;
+					const x = user.pos[0] + sprites.cursor.width * 2 / 3;
+					const y = user.pos[1] + sprites.cursor.height + 6;
 
-				const metrics = ctx.measureText(displayName);
-				const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-				ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-				ctx.fillRect(x - metrics.width / 2 - MARGIN, y - MARGIN, metrics.width + MARGIN * 2, height + MARGIN * 2);
+					const metrics = ctx.measureText(displayName);
+					const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+					ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+					ctx.fillRect(x - metrics.width / 2 - MARGIN, y - MARGIN, metrics.width + MARGIN * 2, height + MARGIN * 2);
 
-				ctx.fillStyle = "white";
-				ctx.fillText(displayName, x, y);
-			}
-		});
+					ctx.fillStyle = "white";
+					ctx.fillText(displayName, x, y);
+				}
+			});
+	}
 }
 
 const CURSOR_SMOOTHING = 0.5;
@@ -360,6 +375,7 @@ async function messageListener(evt) {
 			break;
 
 		case MessageType.CURSOR:
+			if (performanceMode) break;
 			const user = users[msg.id];
 			if (user) {
 				const pos = [msg.x, msg.y];
