@@ -150,8 +150,6 @@ function initTimer() {
 	if (!timerInterval)
 		timerInterval = setInterval(() => {
 			time++;
-			broadcast([MessageType.TICK]);
-
 			if (time >= 999)
 				stopTimer();
 		}, 1000);
@@ -207,9 +205,9 @@ wss.on("connection", (ws, req) => {
 	};
 	users[user.id] = user;
 
-	send([MessageType.INIT, user.id, mineCount, flags.flat()]);
+	send([MessageType.INIT, user.id, mineCount, time, flags.flat()]);
 	Object.values(users).forEach(user => send(userMessageData(user)));
-	send([MessageType.TIMER, time]);
+	// TODO Merge INIT and BOARD
 	send([MessageType.BOARD, boardState.flat()]);
 
 	if (failed)
@@ -269,6 +267,9 @@ wss.on("connection", (ws, req) => {
 				if (isTile)
 					broadcast([MessageType.TILE, x, y, boardState[y][x]]);
 				else {
+					if (borders.length === 0)
+						break;
+
 					let minX = x, minY = y, maxX = x, maxY = y;
 					for (const pos of borders.flat()) {
 						if (pos[0] < minX) minX = pos[0];
@@ -276,23 +277,41 @@ wss.on("connection", (ws, req) => {
 						if (pos[1] < minY) minY = pos[1];
 						if (pos[1] > maxY) maxY = pos[1];
 					}
-					if (maxX - minX === 2 && maxY - minY === 2) {
+					const dx = maxX - minX;
+					const dy = maxY - minY;
+					if ((dx === 2 || (dx === 1 && (minX === 0 || maxX === WIDTH - 1)))
+						&& (dy === 2 || (dy === 1 && (minY === 0 || maxY === HEIGHT - 1)))) {
+						const cx = dx === 2 ? minX + 1 : minX === 0 ? minX : maxX;
+						const cy = dy === 2 ? minY + 1 : minY === 0 ? minY : maxY;
 						const tiles = [];
-						for (let y_ = minY; y_ <= maxY; y_++) {
-							for (let x_ = minX; x_ <= maxX; x_++) {
-								tiles.push(boardState[y_][x_] < 8 ? counts[y_][x_] : 0);
+						for (let y_ = cy - 1; y_ <= cy + 1; y_++) {
+							for (let x_ = cx - 1; x_ <= cx + 1; x_++) {
+								tiles.push(boardState[y_] && boardState[y_][x_] < 8 ? counts[y_][x_] : 0);
 							}
 						}
-						broadcast([MessageType.CHORD, minX + 1, minY + 1, tiles]);
+						broadcast([MessageType.CHORD, cx, cy, tiles]);
 					} else {
-						for (const border of borders) {
-							if (border.length > 1)
-								broadcast(getHoleMessage(border, counts, [x, y]));
-							else {
-								const [x, y] = border[0];
-								broadcast([MessageType.TILE, x, y, boardState[y][x]]);
+						const tiles = [];
+						for (let y_ = y - 1; y_ <= y + 1; y_++) {
+							for (let x_ = x - 1; x_ <= x + 1; x_++) {
+								tiles.push(boardState[y_] && boardState[y_][x_] < 8 ? counts[y_][x_] : 0);
 							}
 						}
+						broadcast([MessageType.CHORD, x, y, tiles]);
+
+						const tileBorders = borders
+							.filter(b => b.length === 1 && (Math.abs(b[0][0] - x) > 1 || Math.abs(b[0][1] - y) > 1));
+						for (let i = 0; i < tileBorders.length; i++) {
+							const [x, y] = tileBorders[i][0];
+							broadcast([MessageType.TILE, x, y, boardState[y][x]]);
+						}
+
+						const holeBorders = borders.filter(b => b.length > 1);
+						for (let i = 0; i < holeBorders.length; i++) {
+							broadcast(getHoleMessage(holeBorders[i], counts, [x, y], i === holeBorders.length - 1));
+						}
+						if (holeBorders.length === 0)
+							broadcast([MessageType.HOLE, x, y, x, y, true, []]);
 					}
 				}
 

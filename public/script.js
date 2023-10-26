@@ -1,5 +1,5 @@
 const { deserializeMessage, formatMessageData, MessageType, serializeMessage } = require("/lib/messages.js");
-const { openHole } = require("/lib/hole.js");
+const { openBorder, openHole } = require("/lib/hole.js");
 
 let id;
 
@@ -292,14 +292,34 @@ canvas.addEventListener("mousedown", (evt) => {
 
 	const reset = buttonPosSize();
 
-	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3]) {
+	if (button === 0 && x >= reset[0] && y >= reset[1] && x <= reset[0] + reset[2] && y <= reset[1] + reset[3] && (win || mines)) {
 		send([MessageType.RESET]);
 	} else if (button === 0 || button === 1 || button === 2) {
 		x = Math.floor((x - sprites.frame.left.width * GUI_SCALE) / TILE_SIZE);
 		y = Math.floor((y - sprites.frame.top.height * GUI_SCALE) / TILE_SIZE);
 
-		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length)
+		if (x >= 0 && x < boardState[0].length && y >= 0 && y < boardState.length) {
+			const state = boardState[y][x];
+			if (state === 0 || state === 8
+				|| (state < 8 && button === 2)
+				|| (state === 9 && button === 1)
+				|| (state === 10 && button !== 2)) return;
+			if (state < 8) {
+				let chord = false;
+				let count = 0;
+				for (let y_ = y - 1; y_ <= y + 1; y_++) {
+					for (let x_ = x - 1; x_ <= x + 1; x_++) {
+						if (boardState[y_] && boardState[y_][x_] === 9)
+							chord = true;
+						if (boardState[y_] && boardState[y_][x_] === 10)
+							count++;
+					}
+				}
+				if (state !== count || !chord)
+					return;
+			}
 			send([button === 0 ? MessageType.TILE : button === 1 ? MessageType.CHORD : MessageType.FLAG, x, y]);
+		}
 
 		evt.preventDefault();
 	}
@@ -323,6 +343,24 @@ function updateBoardSize(redraw = false) {
 	if (change && redraw) draw();
 }
 
+// TODO Generic timer function lib
+let timerInterval;
+
+function startTimer() {
+	if (timerInterval == null)
+		timerInterval = setInterval(() => {
+			time++;
+
+			if (time >= 999)
+				stopTimer();
+		}, 1000);
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = undefined;
+}
+
 function unflatten(arr) {
 	return new Array(16).fill(0).map((_, i) => arr.slice(i * 30, (i + 1) * 30));
 }
@@ -331,12 +369,10 @@ async function messageListener(evt) {
 	const buf = await evt.data.arrayBuffer();
 	const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
 
-	if (msg.type !== MessageType.TICK)
-		console.log(msg);
-
 	switch (msg.type) {
 		case MessageType.INIT:
 			id = msg.id;
+			time = msg.time;
 			mineCount = msg.mineCount;
 			flags = unflatten(msg.flags);
 			break;
@@ -369,23 +405,17 @@ async function messageListener(evt) {
 			}
 			break;
 
-		case MessageType.TIMER:
-			time = msg.time;
-			break;
-
-		case MessageType.TICK:
-			time++;
-			break;
-
 		case MessageType.TILE:
+			startTimer();
 			boardState[msg.y][msg.x] = msg.tile ?? 0;
 			break;
 
 		case MessageType.CHORD:
+			startTimer();
 			let i = 0;
-			for (let y = Math.max(0, msg.y - 1); y <= Math.min(boardState.length - 1, msg.y + 1); y++) {
-				for (let x = Math.max(0, msg.x - 1); x <= Math.min(boardState[0].length - 1, msg.x + 1); x++) {
-					if (boardState[y][x] === 9)
+			for (let y = msg.y - 1; y <= msg.y + 1; y++) {
+				for (let x = msg.x - 1; x <= msg.x + 1; x++) {
+					if (boardState[y] && boardState[y][x] === 9)
 						boardState[y][x] = msg.tiles?.[i] ?? 0;
 					i++;
 				}
@@ -393,7 +423,10 @@ async function messageListener(evt) {
 			break;
 
 		case MessageType.HOLE:
-			openHole(boardState, msg);
+			startTimer();
+			boardState = openBorder(boardState, msg);
+			if (msg.last)
+				boardState = openHole(boardState, msg);
 			break;
 
 		case MessageType.BOARD:
@@ -407,10 +440,12 @@ async function messageListener(evt) {
 			break;
 
 		case MessageType.WIN:
+			stopTimer();
 			win = true;
 			break;
 
 		case MessageType.LOSE:
+			stopTimer();
 			mines = unflatten(msg.mines.map(m => !!m));
 			break;
 
