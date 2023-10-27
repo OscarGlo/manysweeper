@@ -242,7 +242,7 @@ wss.on("connection", (ws, req) => {
 
 					if (mines[y][x]) {
 						boardState[y][x] = 0;
-						send([MessageType.TILE, x, y]);
+						broadcast([MessageType.TILE, x, y]);
 						return fail();
 					}
 				}
@@ -259,7 +259,7 @@ wss.on("connection", (ws, req) => {
 					let failed;
 					[boardState, failed, borders] = chord(boardState, mines, counts, [x, y]);
 					if (failed) {
-						send([MessageType.CHORD, x, y]);
+						broadcast([MessageType.CHORD, x, y]);
 						return fail();
 					}
 				}
