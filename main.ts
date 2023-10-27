@@ -117,6 +117,7 @@ let flags: number[][];
 let firstClick: boolean;
 let failed: boolean;
 let win: boolean;
+let loserId: number;
 
 let time = 0;
 let timerInterval;
@@ -129,6 +130,7 @@ function init() {
 	firstClick = true;
 	failed = false;
 	win = false;
+	loserId = undefined;
 
 	stopTimer();
 	time = 0;
@@ -160,10 +162,11 @@ function stopTimer() {
 	timerInterval = undefined;
 }
 
-function fail() {
+function fail(id) {
 	failed = true;
 	stopTimer();
-	broadcast([MessageType.LOSE, mines.flat()]);
+	loserId = id;
+	broadcast([MessageType.LOSE, id, mines.flat()]);
 }
 
 const ids = {};
@@ -211,7 +214,7 @@ wss.on("connection", (ws, req) => {
 	send([MessageType.BOARD, boardState.flat()]);
 
 	if (failed)
-		send([MessageType.LOSE, mines.flat()]);
+		send([MessageType.LOSE, loserId, mines.flat()]);
 	else if (win)
 		send([MessageType.WIN]);
 
@@ -243,7 +246,7 @@ wss.on("connection", (ws, req) => {
 					if (mines[y][x]) {
 						boardState[y][x] = 0;
 						broadcast([MessageType.TILE, x, y]);
-						return fail();
+						return fail(user.id);
 					}
 				}
 
@@ -260,7 +263,7 @@ wss.on("connection", (ws, req) => {
 					[boardState, failed, borders] = chord(boardState, mines, counts, [x, y]);
 					if (failed) {
 						broadcast([MessageType.CHORD, x, y]);
-						return fail();
+						return fail(user.id);
 					}
 				}
 
@@ -354,6 +357,9 @@ wss.on("connection", (ws, req) => {
 	ws.on("close", () => {
 		delete users[user.id];
 		delete ids[user.id];
+
+		if (loserId === user.id)
+			loserId = 0;
 
 		flags.forEach((row, y) => {
 			row.forEach((flag, x) => {

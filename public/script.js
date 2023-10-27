@@ -11,6 +11,7 @@ let time = 0;
 let mines;
 let flags;
 let win;
+let loserId;
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
@@ -139,6 +140,16 @@ function buttonPosSize() {
 	];
 }
 
+function drawTinted(x, y, sprite, color) {
+	if (color) {
+		const brightness = Math.floor(color[2] * 2 + Math.max(color[2] - 50, 0) * 6);
+		ctx.filter = `hue-rotate(${color[0]}deg) saturate(${Math.floor(color[1])}%) brightness(${brightness}%)`;
+	}
+	drawTile(x, y, sprite);
+	if (color)
+		ctx.filter = "none";
+}
+
 function draw() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -176,25 +187,19 @@ function draw() {
 
 			if (isMine && n !== 10) {
 				drawTile(x, y, sprites.tile);
-				drawTile(x, y, n === 0 ? sprites.mineHit : sprites.mine);
+				if (n === 0)
+					drawTinted(x, y, sprites.mineHit, users[loserId] && users[loserId].color);
+				else
+					drawTile(x, y, sprites.mine);
 				continue;
 			}
 
-			if (n === 10)
-				if (!mines || isMine) {
-					const flagUser = users[flags[y][x]];
-					if (flagUser) {
-						const color = flagUser.color;
-						const brightness = Math.floor(color[2] * 2 + Math.max(color[2] - 50, 0) * 6);
-						ctx.filter = `hue-rotate(${color[0]}deg) saturate(${Math.floor(color[1])}%) brightness(${brightness}%)`;
-					}
-					drawTile(x, y, sprites.flag);
-					ctx.filter = "none";
-				} else {
-					drawTile(x, y, sprites.mineWrong);
-				}
-			else if (n > 0 && n <= 8)
+			if (n === 10) {
+				const id = flags[y][x];
+				drawTinted(x, y, !mines || isMine ? sprites.flag : sprites.mineWrong, users[id] && users[id].color);
+			} else if (n > 0 && n <= 8) {
 				drawTile(x, y, sprites.numbers[n]);
+			}
 		}
 	}
 
@@ -387,6 +392,8 @@ async function messageListener(evt) {
 
 		case MessageType.DISCONNECT:
 			delete users[msg.id];
+			if (loserId === msg.id)
+				loserId = 0;
 			for (let y = 0; y < boardState.length; y++) {
 				for (let x = 0; x < boardState[0].length; x++) {
 					if (flags[y][x] === msg.id)
@@ -446,6 +453,7 @@ async function messageListener(evt) {
 
 		case MessageType.LOSE:
 			stopTimer();
+			loserId = msg.id;
 			mines = unflatten(msg.mines.map(m => !!m));
 			break;
 
