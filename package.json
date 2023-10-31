@@ -2,8 +2,8 @@
 	"name": "manysweeper",
 	"version": "1.0.0",
 	"scripts": {
-		"build": "browserify -r ./lib/messages.js -r ./lib/serialization.js -r ./lib/hole.js | uglifyjs > public/bundle.js",
-		"start": "nodemon main.ts"
+		"build": "tsc && browserify ./dist/script.js | uglifyjs > public/bundle.js",
+		"start": "nodemon dist/main.js"
 	},
 	"dependencies": {
 		"body-parser": "^1.20.2",
@@ -13,7 +13,7 @@
 		"express": "^4.18.2",
 		"nodemon": "^3.0.1",
 		"signale": "^1.4.0",
-		"ts-node": "^10.9.1",
+		"typescript": "^5.2.2",
 		"uglify-js": "^3.17.4",
 		"uuid": "^9.0.1",
 		"ws": "^8.14.2"
@@ -25,16 +25,31 @@
 		"@types/express": "^4.17.19",
 		"@types/signale": "^1.4.6",
 		"@types/uuid": "^9.0.6",
-		"@types/ws": "^8.5.7"
+		"@types/ws": "^8.5.7",
+		"@typescript-eslint/eslint-plugin": "^6.9.0",
+		"@typescript-eslint/parser": "^6.9.0",
+		"eslint": "^8.52.0",
+		"prettier": "^3.0.3"
 	},
 	"nodemonConfig": {
-		"ext": "js,ts,json",
+		"ext": "js,json",
 		"ignore": [
 			"node_modules",
 			"public",
 			".idea"
 		],
 		"delay": 2
+	},
+	"prettier": {},
+	"eslintConfig": {
+		"extends": [
+			"eslint:recommended", "plugin:@typescript-eslint/recommended"
+		],
+		"parser": "@typescript-eslint/parser",
+		"plugins": [
+			"@typescript-eslint"
+		],
+		"root": true
 	},
 	"signale": {
 		"displayDate": true,

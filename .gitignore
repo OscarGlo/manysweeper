@@ -1,4 +1,5 @@
 node_modules/
+dist/
 *.pem
 secrets.json
 public/bundle.js

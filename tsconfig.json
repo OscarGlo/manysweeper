@@ -1,5 +1,10 @@
 {
 	"compilerOptions": {
+		"module": "CommonJS",
+		"target": "ES5",
+		"outDir": "dist",
 		"esModuleInterop": true,
-	}
+		"downlevelIteration": true
+	},
+	"include": ["src"],
 }
