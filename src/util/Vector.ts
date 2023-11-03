@@ -1,5 +1,3 @@
-import { Matrix } from "./Matrix";
-
 export class Vector {
   x: number;
   y: number;

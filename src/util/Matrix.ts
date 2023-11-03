@@ -14,7 +14,7 @@ export class Matrix<T> {
     this.height = height;
 
     this.arr = Array.isArray(value)
-      ? value
+      ? value.slice(0, width * height)
       : typeof value === "function"
       ? new Array(width * height)
           .fill(0)
@@ -23,32 +23,36 @@ export class Matrix<T> {
   }
 
   getVec(i: number) {
-    return new Vector(i % this.width, i / this.width);
+    return new Vector(Math.floor(i / this.height), i % this.height);
+  }
+
+  inBounds(x: Vector | number, y?: number) {
+    const X = y != null ? (x as number) : (x as Vector).x;
+    const Y = y != null ? (y as number) : (x as Vector).y;
+
+    return X >= 0 && X < this.width && Y >= 0 && Y < this.height;
   }
 
   getIndex(x: Vector | number, y?: number) {
-    const X = y ? (x as number) : (x as Vector).x;
-    const Y = y ? (y as number) : (x as Vector).y;
-    return X + Y * this.width;
+    const X = y != null ? (x as number) : (x as Vector).x;
+    const Y = y != null ? (y as number) : (x as Vector).y;
+
+    if (!this.inBounds(X, Y)) return -1;
+    return Y + X * this.height;
   }
 
-  get(x: Vector | number, y?: number): T {
+  get(x: Vector | number, y?: number): T | undefined {
     return this.arr[this.getIndex(x, y)];
   }
 
   set(x: Vector | number, y: number | T, t?: T) {
-    this.arr[this.getIndex(x, t ? (y as number) : undefined)] = t ?? (y as T);
-  }
-
-  copy(): Matrix<T> {
-    return new Matrix<T>(this.width, this.height, this.get);
+    this.arr[this.getIndex(x, t != null ? (y as number) : undefined)] =
+      t ?? (y as T);
   }
 
   forEachCell(fn: (t: T, p: Vector) => void) {
-    for (let x = 0; x < this.width; x++) {
-      for (let y = 0; y < this.height; y++) {
-        fn(this.get(x, y), new Vector(x, y));
-      }
+    for (let i = 0; i < this.arr.length; i++) {
+      fn(this.arr[i], this.getVec(i));
     }
   }
 
@@ -57,9 +61,14 @@ export class Matrix<T> {
     fn: (t: T | undefined, p: Vector) => void,
     keepOutOfBounds: boolean = false,
   ) {
-    for (let x = pos.x - 1; x <= pos.x + 1; x++)
-      for (let y = pos.y - 1; y <= pos.y + 1; y++)
-        if (keepOutOfBounds || this.get(x, y) !== undefined)
+    for (let x = pos.x - 1; x <= pos.x + 1; x++) {
+      for (let y = pos.y - 1; y <= pos.y + 1; y++) {
+        if (
+          (x !== pos.x || y !== pos.y) &&
+          (keepOutOfBounds || this.inBounds(x, y))
+        )
           fn(this.get(x, y), new Vector(x, y));
+      }
+    }
   }
 }

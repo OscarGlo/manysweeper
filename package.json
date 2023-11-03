@@ -2,8 +2,8 @@
 	"name": "manysweeper",
 	"version": "1.0.0",
 	"scripts": {
-		"build": "tsc && browserify ./dist/script.js | uglifyjs > public/bundle.js",
-		"start": "nodemon dist/main.js"
+		"build": "tsc && browserify ./dist/client/script.js | uglifyjs > public/bundle.js",
+		"start": "nodemon dist/server/main"
 	},
 	"dependencies": {
 		"body-parser": "^1.20.2",

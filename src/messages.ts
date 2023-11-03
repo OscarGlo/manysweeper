@@ -25,6 +25,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     time: 8,
     width: 7,
     height: 7,
+    started: 1,
     flags: [8],
   },
   [MessageType.USER]: {
