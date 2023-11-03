@@ -114,7 +114,7 @@ wss.on("connection", (ws, req) => {
     const state = game.board.get(pos);
 
     if (msg.type === MessageType.TILE || msg.type === MessageType.CHORD) {
-      if (game.loserId || game.win) {
+      if (game.loserId != null || game.win) {
         return;
       }
       game.timer.start();
@@ -205,7 +205,6 @@ wss.on("connection", (ws, req) => {
           }
 
           const holeBorders = borders.filter((b) => b.length > 1);
-          logger.debug(holeBorders);
           for (let i = 0; i < holeBorders.length; i++) {
             broadcast(
               game.getHoleMessage(
@@ -228,7 +227,7 @@ wss.on("connection", (ws, req) => {
         broadcast([MessageType.WIN]);
       }
     } else if (msg.type === MessageType.FLAG) {
-      if (game.loserId || game.win) return;
+      if (game.loserId != null || game.win) return;
 
       game.timer.start();
 
@@ -240,7 +239,7 @@ wss.on("connection", (ws, req) => {
         broadcast([MessageType.FLAG, x, y, user.id]);
       }
     } else if (msg.type === MessageType.RESET) {
-      if (game.loserId || game.win) {
+      if (game.loserId != null || game.win) {
         init();
         broadcast([MessageType.RESET, game.mineCount]);
       }

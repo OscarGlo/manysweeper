@@ -9,8 +9,46 @@ import { Matrix } from "../util/Matrix";
 import { Color } from "../util/Color";
 import { FLAG, GameState, State, WALL } from "../model/GameState";
 import { throttled } from "../util/util";
-import { canvas, getResetPosSize, getTilePos, updateBoardSize } from "./render";
+import {
+  canvas,
+  getResetPosSize,
+  getTilePos,
+  skin,
+  updateBoardSize,
+} from "./rendering/render";
+import cookie from "cookie";
 
+// Options
+const cookies = cookie.parse(document.cookie ?? "");
+
+const skinSelect = document.getElementsByName("skin")[0] as HTMLSelectElement;
+
+if (cookies.skin) {
+  skinSelect.value = cookies.skin;
+  skin.load(skinSelect.value);
+}
+
+skinSelect.addEventListener("change", () => {
+  cookies.skin = skinSelect.value;
+  document.cookie = cookie.serialize("skin", skinSelect.value);
+  skin.load(skinSelect.value);
+});
+
+const bgColor = document.getElementsByName("bgColor")[0] as HTMLSelectElement;
+
+if (cookies.bgColor) {
+  console.log(bgColor);
+  bgColor.value = cookies.bgColor;
+  document.body.style.backgroundColor = bgColor.value;
+}
+
+bgColor.addEventListener("change", () => {
+  cookies.bgColor = bgColor.value;
+  document.cookie = cookie.serialize("bgColor", bgColor.value);
+  document.body.style.backgroundColor = bgColor.value;
+});
+
+// Game logic
 export const game = new GameState(0, 0, 0);
 
 let id: number;
@@ -40,15 +78,15 @@ canvas.addEventListener("mousedown", (evt) => {
   const pos = getMousePos(evt);
   const button = evt.button;
 
-  const reset = getResetPosSize();
+  const [resetPos, resetSize] = getResetPosSize();
 
   if (
     button === 0 &&
-    pos.x >= reset[0] &&
-    pos.y >= reset[1] &&
-    pos.x <= reset[0] + reset[2] &&
-    pos.y <= reset[1] + reset[3] &&
-    (game.win || game.loserId)
+    pos.x >= resetPos.x &&
+    pos.y >= resetPos.y &&
+    pos.x <= resetPos.x + resetSize.x &&
+    pos.y <= resetPos.y + resetSize.y &&
+    (game.win || game.loserId != null)
   ) {
     send([MessageType.RESET]);
   } else if (button === 0 || button === 1 || button === 2) {
@@ -93,8 +131,6 @@ canvas.addEventListener("mousedown", (evt) => {
 async function messageListener(evt) {
   const buf = await evt.data.arrayBuffer();
   const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
-
-  console.log("MESSAGE", msg);
 
   let pos: Vector;
   if (msg.x != null && msg.y != null)
