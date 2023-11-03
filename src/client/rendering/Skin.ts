@@ -1,6 +1,7 @@
 import { AtlasTexture, NineSliceTexture } from "./Texture";
+import { EventEmitter } from "events";
 
-export class Skin {
+export class Skin extends EventEmitter {
   tiles: AtlasTexture;
   frame: NineSliceTexture;
   counter: NineSliceTexture;
@@ -10,6 +11,7 @@ export class Skin {
   loaded: boolean = false;
 
   constructor(name: string) {
+    super();
     this.load(name);
   }
 
@@ -50,6 +52,7 @@ export class Skin {
         this.button = button;
 
         this.loaded = true;
+        this.emit("load");
       }
     };
 

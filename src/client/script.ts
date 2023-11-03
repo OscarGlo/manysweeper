@@ -153,8 +153,8 @@ async function messageListener(evt) {
         id: msg.id as number,
         color: Color.hsl(
           msg.hue as number,
-          msg.saturation as number,
-          msg.lightness as number,
+          (msg.saturation as number) / 100,
+          (msg.lightness as number) / 100,
         ),
         username: msg.username as string,
       };

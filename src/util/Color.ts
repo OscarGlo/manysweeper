@@ -75,7 +75,7 @@ export class Color {
 
       this._h = Math.round(h * 60);
 
-      if (h < 0) h += 360;
+      if (h < 0) this._h += 360;
 
       this._l = (cmax + cmin) / 2;
       this._s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * this._l - 1));

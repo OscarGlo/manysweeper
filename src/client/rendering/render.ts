@@ -35,6 +35,8 @@ export function updateBoardSize(redraw = false) {
   if (change && redraw) draw();
 }
 
+skin.on("load", () => updateBoardSize(true));
+
 const cursor = new Image();
 cursor.src = "img/cursor.png";
 
