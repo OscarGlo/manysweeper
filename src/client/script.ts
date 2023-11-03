@@ -37,7 +37,6 @@ skinSelect.addEventListener("change", () => {
 const bgColor = document.getElementsByName("bgColor")[0] as HTMLSelectElement;
 
 if (cookies.bgColor) {
-  console.log(bgColor);
   bgColor.value = cookies.bgColor;
   document.body.style.backgroundColor = bgColor.value;
 }

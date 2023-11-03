@@ -1,6 +1,5 @@
 import WebSocket, { RawData, WebSocketServer } from "ws";
 import cookie from "cookie";
-import logger from "signale";
 
 import {
   deserializeMessage,
@@ -23,8 +22,6 @@ const game = new GameState(30, 16, 99);
 function init() {
   game.reset();
   game.generate();
-
-  logger.debug(game);
 }
 
 init();
