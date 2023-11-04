@@ -3,8 +3,18 @@
 <html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
 	<meta charset="UTF-8">
+	<meta name="viewport" content="initial-scale=1, width=device-width" />
+
 	<title>ManySweeper</title>
 	<link rel="shortcut icon" href="img/favicon.png">
+
+	<!-- Roboto -->
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap"
+	/>
 
 	<style>
 		* {
@@ -20,33 +30,15 @@
 			left: 50%;
 			transform: translate(-50%, -50%);
 		}
-
-		.options {
-			display: inline-block;
-			margin: 10px;
-			padding: 10px;
-			background: white;
-		}
 	</style>
 </head>
 <body>
-	<div class="options">
-		<label>
-			Skin
-			<select name="skin">
-				<option value="classic" selected>Classic</option>
-				<option value="classic_dark">Classic dark</option>
-			</select>
-		</label>
-		<br/>
-		<label>
-			Background color
-			<input name="bgColor" type="color" value="#ffffff">
-		</label>
-	</div>
-
+	<div id="app"></div>
 	<canvas></canvas>
-
 	<script src="bundle.js"></script>
+
+	<noscript>
+		Please enable javascript to use this website.
+	</noscript>
 </body>
 </html>

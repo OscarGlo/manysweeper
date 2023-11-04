@@ -13,41 +13,11 @@ import {
   canvas,
   getResetPosSize,
   getTilePos,
-  skin,
   updateBoardSize,
-} from "./rendering/render";
-import cookie from "cookie";
+} from "./board/render";
 
-// Options
-const cookies = cookie.parse(document.cookie ?? "");
+import "./app";
 
-const skinSelect = document.getElementsByName("skin")[0] as HTMLSelectElement;
-
-if (cookies.skin) {
-  skinSelect.value = cookies.skin;
-  skin.load(skinSelect.value);
-}
-
-skinSelect.addEventListener("change", () => {
-  cookies.skin = skinSelect.value;
-  document.cookie = cookie.serialize("skin", skinSelect.value);
-  skin.load(skinSelect.value);
-});
-
-const bgColor = document.getElementsByName("bgColor")[0] as HTMLSelectElement;
-
-if (cookies.bgColor) {
-  bgColor.value = cookies.bgColor;
-  document.body.style.backgroundColor = bgColor.value;
-}
-
-bgColor.addEventListener("change", () => {
-  cookies.bgColor = bgColor.value;
-  document.cookie = cookie.serialize("bgColor", bgColor.value);
-  document.body.style.backgroundColor = bgColor.value;
-});
-
-// Game logic
 export const game = new GameState(0, 0, 0);
 
 let id: number;
@@ -153,8 +123,8 @@ async function messageListener(evt) {
         id: msg.id as number,
         color: Color.hsl(
           msg.hue as number,
-          (msg.saturation as number) / 100,
-          (msg.lightness as number) / 100,
+          msg.saturation as number,
+          msg.lightness as number,
         ),
         username: msg.username as string,
       };

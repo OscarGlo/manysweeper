@@ -22,8 +22,8 @@ export class Color {
   static hsl(h: number, s: number, l: number) {
     const color = new Color();
     color._h = h;
-    color._s = s;
-    color._l = l;
+    color._s = s / 100;
+    color._l = l / 100;
     return color;
   }
 

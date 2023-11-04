@@ -2,16 +2,30 @@
 	"name": "manysweeper",
 	"version": "1.0.0",
 	"scripts": {
-		"build": "tsc && browserify ./dist/client/script.js | uglifyjs > public/bundle.js",
+		"build": "tsc && browserify -t [ babelify ] ./dist/client/script.js -o public/bundle.js",
 		"start": "nodemon dist/server/main"
 	},
 	"dependencies": {
+		"@babel/preset-env": "^7.23.2",
+		"@babel/preset-react": "^7.22.15",
+		"@emotion/react": "^11.11.1",
+		"@emotion/styled": "^11.11.0",
+		"@fontsource/roboto": "^5.0.8",
+		"@mui/icons-material": "^5.14.16",
+		"@mui/material": "^5.14.16",
+		"@types/react": "^18.2.34",
+		"@types/react-dom": "^18.2.14",
+		"babelify": "^10.0.0",
 		"body-parser": "^1.20.2",
 		"browserify": "^17.0.0",
 		"cookie": "^0.5.0",
 		"cookie-parser": "^1.4.6",
 		"express": "^4.18.2",
+		"mui-color-input": "^2.0.1",
 		"nodemon": "^3.0.1",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0",
+		"react-helmet": "^6.1.0",
 		"signale": "^1.4.0",
 		"typescript": "^5.2.2",
 		"uglify-js": "^3.17.4",
@@ -43,7 +57,8 @@
 	"prettier": {},
 	"eslintConfig": {
 		"extends": [
-			"eslint:recommended", "plugin:@typescript-eslint/recommended"
+			"eslint:recommended",
+			"plugin:@typescript-eslint/recommended"
 		],
 		"parser": "@typescript-eslint/parser",
 		"plugins": [
