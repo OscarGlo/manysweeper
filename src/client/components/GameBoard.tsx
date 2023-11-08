@@ -38,7 +38,7 @@ export function GameBoard(): React.ReactElement {
     skin.on("load", onLoad);
 
     return () => void skin.removeListener("load", onLoad);
-  }, [skin]);
+  }, [canvas, skin, game]);
 
   useEffect(() => {
     setMessageListener((evt) => messageListener(canvas, skin, game, evt));
