@@ -2,52 +2,47 @@ import {
   deserializeMessage,
   formatMessageData,
   MessageType,
+  MessageValue,
   serializeMessage,
-} from "../messages";
-import { Vector } from "../util/Vector";
-import { Matrix } from "../util/Matrix";
-import { Color } from "../util/Color";
-import { FLAG, GameState, State, WALL } from "../model/GameState";
-import { throttled } from "../util/util";
-import {
-  canvas,
-  getResetPosSize,
-  getTilePos,
-  updateBoardSize,
-} from "./board/render";
+} from "../../model/messages";
+import { Vector } from "../../util/Vector";
+import { Matrix } from "../../util/Matrix";
+import { Color } from "../../util/Color";
+import { FLAG, GameState, State, WALL } from "../../model/GameState";
+import { throttled } from "../../util/util";
+import { getResetPosSize, getTilePos, updateBoardSize } from "./render";
+import { Skin } from "./Skin";
+import React from "react";
 
-import "./app";
-
-export const game = new GameState(0, 0, 0);
-
-let id: number;
-
-let ws = new WebSocket("wss://" + location.host);
-
-function send(data) {
+function send(ws: WebSocket, data: MessageValue[]) {
   if (ws.readyState === WebSocket.OPEN) ws.send(serializeMessage(data));
 }
 
-const sendPos = throttled((pos: Vector) => {
+export const sendPos = throttled((ws: WebSocket, pos: Vector) => {
   if (ws.readyState === WebSocket.OPEN) {
-    send([MessageType.CURSOR, id, pos.x, pos.y]);
+    send(ws, [MessageType.CURSOR, pos.x, pos.y]);
   }
 }, 50);
 
-canvas.addEventListener("mousemove", (evt) => {
-  sendPos(getMousePos(evt));
-});
-
-function getMousePos(evt): Vector {
+export function getMousePos(
+  canvas: HTMLCanvasElement,
+  evt: React.MouseEvent,
+): Vector {
   const rect = canvas.getBoundingClientRect();
   return new Vector(evt.clientX - rect.left, evt.clientY - rect.top);
 }
 
-canvas.addEventListener("mousedown", (evt) => {
-  const pos = getMousePos(evt);
+export function onClick(
+  ws: WebSocket,
+  canvas: HTMLCanvasElement,
+  game: GameState,
+  skin: Skin,
+  evt: React.MouseEvent,
+) {
+  const pos = getMousePos(canvas, evt);
   const button = evt.button;
 
-  const [resetPos, resetSize] = getResetPosSize();
+  const [resetPos, resetSize] = getResetPosSize(skin);
 
   if (
     button === 0 &&
@@ -57,9 +52,9 @@ canvas.addEventListener("mousedown", (evt) => {
     pos.y <= resetPos.y + resetSize.y &&
     (game.win || game.loserId != null)
   ) {
-    send([MessageType.RESET]);
+    send(ws, [MessageType.RESET]);
   } else if (button === 0 || button === 1 || button === 2) {
-    const tilePos = getTilePos(pos);
+    const tilePos = getTilePos(skin, pos);
 
     if (game.board.inBounds(tilePos)) {
       const state = game.board.get(tilePos);
@@ -82,7 +77,7 @@ canvas.addEventListener("mousedown", (evt) => {
         if (state !== count || !chord) return;
       }
 
-      send([
+      send(ws, [
         button === 0
           ? MessageType.TILE
           : button === 1
@@ -92,12 +87,15 @@ canvas.addEventListener("mousedown", (evt) => {
         tilePos.y,
       ]);
     }
-
-    evt.preventDefault();
   }
-});
+}
 
-async function messageListener(evt) {
+export async function messageListener(
+  canvas: HTMLCanvasElement | undefined,
+  skin: Skin,
+  game: GameState,
+  evt: MessageEvent,
+) {
   const buf = await evt.data.arrayBuffer();
   const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
 
@@ -107,8 +105,6 @@ async function messageListener(evt) {
 
   switch (msg.type) {
     case MessageType.INIT:
-      id = msg.id as number;
-
       game.reset();
       game.width = msg.width as number;
       game.height = msg.height as number;
@@ -178,7 +174,7 @@ async function messageListener(evt) {
         game.flags.height,
         msg.tiles as State[],
       );
-      updateBoardSize();
+      if (canvas) updateBoardSize(canvas, skin, game);
       break;
 
     case MessageType.FLAG:
@@ -213,12 +209,3 @@ async function messageListener(evt) {
       break;
   }
 }
-
-ws.addEventListener("message", messageListener);
-
-ws.addEventListener("error", (evt) => {
-  evt.preventDefault();
-
-  ws = new WebSocket("ws://" + location.host);
-  ws.addEventListener("message", messageListener);
-});

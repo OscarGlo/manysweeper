@@ -20,7 +20,8 @@ export function CookiesProvider({
   const setCookie = useCallback(
     (key: string, value: string) => {
       document.cookie = cookie.serialize(key, value);
-      setCookies({ ...cookies, key: value });
+      cookies[key] = value;
+      setCookies(cookies);
     },
     [cookies, setCookies],
   );

@@ -1,4 +1,4 @@
-import WebSocket, { RawData, WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import cookie from "cookie";
 
 import {
@@ -7,7 +7,7 @@ import {
   MessageType,
   MessageValue,
   serializeMessage,
-} from "../messages";
+} from "../model/messages";
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
@@ -26,17 +26,12 @@ function init() {
 
 init();
 
-function broadcast(message: MessageValue[] | RawData, from?: WebSocket) {
+function broadcast(message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
     if (ws !== from)
-      ws.send(
-        Array.isArray(message)
-          ? serializeMessage(message as MessageValue[])
-          : message,
-        {
-          binary: true,
-        },
-      );
+      ws.send(serializeMessage(message as MessageValue[]), {
+        binary: true,
+      });
   });
 }
 
@@ -241,7 +236,7 @@ wss.on("connection", (ws, req) => {
         broadcast([MessageType.RESET, game.mineCount]);
       }
     } else if (msg.type === MessageType.CURSOR) {
-      broadcast(data, ws);
+      broadcast([MessageType.CURSOR, x, y, user.id], ws);
     }
   });
 
@@ -249,7 +244,7 @@ wss.on("connection", (ws, req) => {
     delete game.users[user.id];
     userIds.delete(user.id);
 
-    if (game.loserId === user.id) game.loserId = 0;
+    if (game.loserId === user.id) game.loserId = INVALID_ID;
 
     game.flags.forEachCell((id, p) => {
       if (id === user.id) game.flags.set(p, INVALID_ID);

@@ -1,47 +1,69 @@
-import React, { createContext } from "react";
-import { Drawer, IconButton, Stack } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
-import PersonIcon from "@mui/icons-material/Person";
-import MouseIcon from "@mui/icons-material/Mouse";
+import React, { useContext, useState } from "react";
+import { AppBar, Avatar, Toolbar, Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { OptionsModal } from "./OptionsModal";
+import PersonIcon from "@mui/icons-material/Person";
 import { useToggle } from "../hooks/useToggle";
 import { NavigationButton } from "./NavigationButton";
-
-export interface NavigationContextValue {
-  open: boolean;
-}
-
-export const NavigationContext = createContext<NavigationContextValue>({
-  open: false,
-});
+import { Login } from "./Login";
+import { Options } from "./Options";
+import { CookiesContext } from "../contexts/Cookies";
 
 export function Navigation(): React.ReactElement {
-  const [open, toggleOpen] = useToggle();
+  const { cookies } = useContext(CookiesContext);
+
+  const [loginAnchor, setLoginAnchor] = useState<Element>();
+  const [optionsAnchor, setOptionsAnchor] = useState<Element>();
+
   const [optionsOpen, toggleOptionsOpen] = useToggle();
+  const [loginOpen, toggleLoginOpen] = useToggle();
 
   return (
-    <NavigationContext.Provider value={{ open }}>
-      <Drawer variant="permanent">
-        <Stack direction="column" alignItems="start" height="100%">
-          <IconButton onClick={toggleOpen} sx={{ width: "fit-content" }}>
-            {open ? <CloseIcon /> : <MenuIcon />}
-          </IconButton>
+    <AppBar position="static">
+      <Toolbar>
+        <Typography variant="h5">ManySweeper</Typography>
 
-          <NavigationButton icon={PersonIcon} label="Profile" />
-          <NavigationButton icon={MouseIcon} label="Play" />
+        <NavigationButton
+          icon={(props) =>
+            cookies.username ? (
+              <Avatar
+                {...props}
+                sx={{ bgcolor: cookies.color, marginRight: 1 }}
+              >
+                {cookies.username?.split(" ")[0]?.[0]}
+                {cookies.username?.split(" ")[1]?.[0]}
+              </Avatar>
+            ) : (
+              <PersonIcon />
+            )
+          }
+          label="Login"
+          sx={{ marginInlineStart: "auto" }}
+          onClick={toggleLoginOpen}
+          ref={setLoginAnchor}
+        />
 
-          <NavigationButton
-            icon={SettingsIcon}
-            label="Options"
-            sx={{ marginTop: "auto" }}
-            onClick={toggleOptionsOpen}
-          />
-        </Stack>
-      </Drawer>
+        <NavigationButton
+          icon={SettingsIcon}
+          label="Options"
+          onClick={toggleOptionsOpen}
+          ref={setOptionsAnchor}
+        />
+      </Toolbar>
 
-      <OptionsModal open={optionsOpen} onClose={toggleOptionsOpen} />
-    </NavigationContext.Provider>
+      <Options
+        open={optionsOpen}
+        anchorEl={optionsAnchor}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        transformOrigin={{ vertical: "top", horizontal: "center" }}
+        onClose={toggleOptionsOpen}
+      />
+      <Login
+        open={loginOpen}
+        anchorEl={loginAnchor}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        transformOrigin={{ vertical: "top", horizontal: "center" }}
+        onClose={toggleLoginOpen}
+      />
+    </AppBar>
   );
 }

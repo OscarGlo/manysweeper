@@ -2,6 +2,8 @@ import { AtlasTexture, NineSliceTexture } from "./Texture";
 import { EventEmitter } from "events";
 
 export class Skin extends EventEmitter {
+  name: string;
+
   tiles: AtlasTexture;
   frame: NineSliceTexture;
   counter: NineSliceTexture;
@@ -16,6 +18,8 @@ export class Skin extends EventEmitter {
   }
 
   async load(name: string) {
+    this.name = name;
+
     const config = await fetch(`img/skins/${name}/config.json`).then((res) =>
       res.json(),
     );

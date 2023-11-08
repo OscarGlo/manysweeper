@@ -1,29 +1,34 @@
-import React, { createContext, useCallback, useState } from "react";
-import { createTheme, ThemeProvider } from "@mui/material";
+import React, { createContext, useCallback, useMemo, useState } from "react";
+import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { WithChildren } from "../util/WithChildren";
 
 export interface AppThemeValue {
-  setBackgroundColor: (color: string) => void;
+  setMode: (dark: boolean) => void;
 }
 
 export const AppThemeContext = createContext<AppThemeValue>({
-  setBackgroundColor: () => {},
+  setMode: () => {},
 });
 
 export function AppThemeProvider({ children }: WithChildren) {
-  const [theme, setTheme] = useState(createTheme());
+  const lightTheme = useMemo(() => createTheme(), [createTheme]);
+  const darkTheme = useMemo(
+    () => createTheme({ palette: { mode: "dark" } }),
+    [createTheme],
+  );
+  const [theme, setTheme] = useState(lightTheme);
 
-  const setBackgroundColor = useCallback(
-    (color: string) => {
-      theme.palette.background.default = color;
-      setTheme(theme);
-    },
+  const setMode = useCallback(
+    (dark: boolean) => setTheme(dark ? darkTheme : lightTheme),
     [theme, setTheme],
   );
 
   return (
-    <AppThemeContext.Provider value={{ setBackgroundColor }}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    <AppThemeContext.Provider value={{ setMode }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
     </AppThemeContext.Provider>
   );
 }

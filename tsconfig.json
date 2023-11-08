@@ -5,7 +5,8 @@
 		"outDir": "dist",
 		"esModuleInterop": true,
 		"downlevelIteration": true,
-      "jsx": "react"
+      	"jsx": "react",
+		"forceConsistentCasingInFileNames": false
     },
 	"include": ["src"],
 }

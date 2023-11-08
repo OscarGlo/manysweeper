@@ -1,24 +1,56 @@
-import { Input, OutlinedInput, OutlinedInputProps } from "@mui/material";
-import React from "react";
+import {
+  FormControl,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+  OutlinedInputProps,
+  Typography,
+} from "@mui/material";
+import React, { ChangeEvent, useCallback, useState } from "react";
+import { throttled } from "../../util/util";
 
-export interface ColorInputProps extends Omit<OutlinedInputProps, "onChange"> {
-  onChange?: (value: string) => void;
+function ColorInputInternal(props: OutlinedInputProps): React.ReactElement {
+  const [value, setValue] = useState<string>(props.value as string | undefined);
+  const getValue = useCallback(
+    (elt: HTMLInputElement) => setValue(elt.value),
+    [setValue],
+  );
+
+  const onChange = useCallback(
+    throttled((evt: ChangeEvent<HTMLInputElement>) => {
+      setValue(evt.target.value);
+      props.onChange?.(evt);
+    }, 100),
+    [setValue, props],
+  );
+
+  return (
+    <OutlinedInput
+      {...props}
+      type="color"
+      inputRef={getValue}
+      endAdornment={
+        <>
+          <InputAdornment position="end">
+            <Typography sx={{ fontFamily: '"Roboto Mono", monospaced' }}>
+              {value}
+            </Typography>
+          </InputAdornment>
+          {props.endAdornment}
+        </>
+      }
+      onChange={onChange}
+    />
+  );
 }
 
-export function ColorInput({ onChange, ...props }: ColorInputProps) {
-  return (
-    <Input
-      slots={{
-        input: () => (
-          <OutlinedInput
-            {...props}
-            onChange={(evt) => {
-              onChange?.(evt.target.value);
-            }}
-            type="color"
-          />
-        ),
-      }}
-    />
+export function ColorInput(props: OutlinedInputProps): React.ReactElement {
+  return props.label ? (
+    <FormControl>
+      <InputLabel>{props.label}</InputLabel>
+      <ColorInputInternal {...props} />
+    </FormControl>
+  ) : (
+    <ColorInputInternal {...props} />
   );
 }

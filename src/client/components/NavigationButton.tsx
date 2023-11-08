@@ -1,7 +1,6 @@
-import { Button, ButtonProps, IconButton, Tooltip } from "@mui/material";
+import { Button, ButtonProps, Tooltip } from "@mui/material";
 import { OverridableComponent } from "@mui/material/OverridableComponent";
-import React, { useContext } from "react";
-import { NavigationContext } from "./Navigation";
+import React from "react";
 
 export interface NavigationButtonProps extends ButtonProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,35 +8,15 @@ export interface NavigationButtonProps extends ButtonProps {
   label: string;
 }
 
-export function NavigationButton({
-  icon: Icon,
-  label,
-  ...props
-}: NavigationButtonProps) {
-  const { open } = useContext(NavigationContext);
-
+export const NavigationButton = React.forwardRef<
+  HTMLButtonElement,
+  NavigationButtonProps
+>(({ icon: Icon, label, ...props }: NavigationButtonProps, ref) => {
   return (
-    <Tooltip title={label} enterDelay={500} placement="left">
-      {open ? (
-        <Button
-          variant="text"
-          {...props}
-          sx={{
-            display: "flex",
-            justifyContent: "start",
-            gap: 1,
-            height: "40px",
-            width: "100%",
-            ...props.sx,
-          }}
-        >
-          <Icon /> {label}
-        </Button>
-      ) : (
-        <IconButton color="primary" {...props}>
-          <Icon />
-        </IconButton>
-      )}
+    <Tooltip title={label} enterDelay={500}>
+      <Button color="inherit" variant="text" ref={ref} {...props}>
+        <Icon sx={{ marginRight: 1 }} /> {label}
+      </Button>
     </Tooltip>
   );
-}
+});

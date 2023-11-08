@@ -1,4 +1,4 @@
-import { deserialize, serialize } from "./serialization";
+import { deserialize, serialize } from "../util/serialization";
 
 export enum MessageType {
   INIT,
@@ -36,7 +36,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     username: "",
   },
   [MessageType.DISCONNECT]: { id: 8 },
-  [MessageType.CURSOR]: { id: 8, x: 12, y: 12 },
+  [MessageType.CURSOR]: { x: 12, y: 12, id: 8 },
   [MessageType.TILE]: { x: 8, y: 8, tile: 4 },
   [MessageType.CHORD]: { x: 8, y: 8, tiles: [3] },
   [MessageType.HOLE]: {

@@ -3,7 +3,7 @@ import { UserConnection } from "./UserConnection";
 import { Timer } from "../util/Timer";
 import { Vector } from "../util/Vector";
 import { shuffle } from "../util/util";
-import { Message, MessageData, MessageType } from "../messages";
+import { Message, MessageData, MessageType } from "./messages";
 
 export const WALL = 9;
 export const FLAG = 10;
