@@ -19,14 +19,10 @@ export function updateBoardSize(
     TILE_SIZE,
   );
 
-  if (canvas.width !== game.board.width) {
-    canvas.width =
-      drawBoardSize.x + (skin.frame.left + skin.frame.right) * GUI_SCALE;
-  }
-  if (canvas.height !== game.board.height) {
-    canvas.height =
-      drawBoardSize.y + (skin.frame.top + skin.frame.bottom) * GUI_SCALE;
-  }
+  canvas.width =
+    drawBoardSize.x + (skin.frame.left + skin.frame.right) * GUI_SCALE;
+  canvas.height =
+    drawBoardSize.y + (skin.frame.top + skin.frame.bottom) * GUI_SCALE;
 }
 
 const cursor = new Image();
