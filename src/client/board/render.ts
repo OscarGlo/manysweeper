@@ -21,10 +21,10 @@ export function updateBoardSize(
 
   canvas.width =
     drawBoardSize.x +
-    (skin.loaded ? skin.frame.left + skin.frame.right * GUI_SCALE : 0);
+    (skin.loaded ? (skin.frame.left + skin.frame.right) * GUI_SCALE : 0);
   canvas.height =
     drawBoardSize.y +
-    (skin.loaded ? skin.frame.left + skin.frame.right * GUI_SCALE : 0);
+    (skin.loaded ? (skin.frame.top + skin.frame.bottom) * GUI_SCALE : 0);
 }
 
 const cursor = new Image();
