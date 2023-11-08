@@ -20,9 +20,11 @@ export function updateBoardSize(
   );
 
   canvas.width =
-    drawBoardSize.x + (skin.frame.left + skin.frame.right) * GUI_SCALE;
+    drawBoardSize.x +
+    (skin.loaded ? skin.frame.left + skin.frame.right * GUI_SCALE : 0);
   canvas.height =
-    drawBoardSize.y + (skin.frame.top + skin.frame.bottom) * GUI_SCALE;
+    drawBoardSize.y +
+    (skin.loaded ? skin.frame.left + skin.frame.right * GUI_SCALE : 0);
 }
 
 const cursor = new Image();
