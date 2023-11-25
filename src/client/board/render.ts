@@ -205,17 +205,12 @@ export function draw(
       ctx.drawImage(cursor, user.cursorPos.x, user.cursorPos.y);
 
       if (user.username) {
-        const displayName =
-          user.username.length > 16
-            ? user.username.substring(0, 16) + "…"
-            : user.username;
-
         const textPos = new Vector(
           user.cursorPos.x + (cursor.width * 2) / 3,
           user.cursorPos.y + cursor.height + 6,
         );
 
-        const metrics = ctx.measureText(displayName);
+        const metrics = ctx.measureText(user.username);
         const height =
           metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
         ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
@@ -227,7 +222,7 @@ export function draw(
         );
 
         ctx.fillStyle = "white";
-        ctx.fillText(displayName, textPos.x, textPos.y);
+        ctx.fillText(user.username, textPos.x, textPos.y);
       }
     });
 }

@@ -77,9 +77,9 @@ wss.on("connection", (ws, req) => {
     },
   });
 
-  const user = {
+  const user: UserConnection = {
     id: game.userIds.get(),
-    username: cookies.username ?? "Guest",
+    username: cookies.username.substring(0, 24) ?? "Guest",
     color: cookies.color ? Color.hex(cookies.color) : Color.RED,
   };
 

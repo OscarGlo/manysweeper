@@ -42,6 +42,7 @@ export function LoginPopover(props: PopoverProps): React.ReactElement {
             <TextField
               label="Username"
               size="small"
+              inputProps={{ maxLength: 24 }}
               value={value}
               onChange={(evt) => onChange(evt.target.value)}
             />
