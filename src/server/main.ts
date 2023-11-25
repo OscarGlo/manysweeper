@@ -11,20 +11,19 @@ import {
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
-import { Border, FLAG, GameState, WALL } from "../model/GameState";
-import { IdGen } from "../util/IdGen";
+import { Border, FLAG, WALL } from "../model/GameState";
 import { server } from "./http";
+import { UserConnection } from "../model/UserConnection";
+import { IdGen } from "../util/IdGen";
+import { Room } from "../model/Room";
 
 const wss = new WebSocketServer({ server });
 
-const game = new GameState(30, 16, 99);
+export const roomId = new IdGen({ min: 1 });
 
-function init() {
-  game.reset();
-  game.generate();
-}
-
-init();
+export const rooms: Record<number, Room> = {
+  0: new Room({ name: "Persistent expert", width: 30, height: 16, mines: 99 }),
+};
 
 function broadcast(message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
@@ -35,17 +34,15 @@ function broadcast(message: MessageValue[], from?: WebSocket) {
   });
 }
 
-function fail(id) {
-  game.timer.stop();
-  game.loserId = id;
-  broadcast([MessageType.LOSE, id, game.mines.arr]);
+function fail(id: number, loserId: number) {
+  rooms[id].game.timer.stop();
+  rooms[id].game.loserId = loserId;
+  broadcast([MessageType.LOSE, loserId, rooms[id].game.mines.arr]);
 }
 
 const INVALID_ID = 0;
 
-const userIds = new IdGen({ min: 1, max: 255 });
-
-function userMessageData(user) {
+function userMessageData(user: UserConnection) {
   return [
     MessageType.USER,
     user.id,
@@ -57,6 +54,21 @@ function userMessageData(user) {
 }
 
 wss.on("connection", (ws, req) => {
+  function send(message) {
+    ws.send(serializeMessage(message), { binary: true });
+  }
+
+  const id = parseInt(req.url.split("?", 2)[1]);
+
+  if (rooms[id] == null) return send([MessageType.ERROR]);
+
+  const room = rooms[id];
+
+  clearTimeout(room.timeout);
+  room.timeout = undefined;
+
+  const game = room.game;
+
   const cookies = cookie.parse(req.headers.cookie ?? "", {
     decode: (encoded: string) => {
       const string = decodeURIComponent(encoded);
@@ -65,12 +77,8 @@ wss.on("connection", (ws, req) => {
     },
   });
 
-  function send(message) {
-    ws.send(serializeMessage(message), { binary: true });
-  }
-
   const user = {
-    id: userIds.get(),
+    id: game.userIds.get(),
     username: cookies.username ?? "Guest",
     color: cookies.color ? Color.hex(cookies.color) : Color.RED,
   };
@@ -121,7 +129,7 @@ wss.on("connection", (ws, req) => {
         if (game.mines.get(pos)) {
           game.board.set(pos, 0);
           broadcast([MessageType.TILE, x, y]);
-          return fail(user.id);
+          return fail(id, user.id);
         }
       }
 
@@ -139,7 +147,7 @@ wss.on("connection", (ws, req) => {
         [failed, borders] = game.chord(pos);
         if (failed) {
           broadcast([MessageType.CHORD, x, y]);
-          return fail(user.id);
+          return fail(id, user.id);
         }
       }
 
@@ -232,7 +240,7 @@ wss.on("connection", (ws, req) => {
       }
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
-        init();
+        game.reset();
         broadcast([MessageType.RESET, game.mineCount]);
       }
     } else if (msg.type === MessageType.CURSOR) {
@@ -242,7 +250,10 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", () => {
     delete game.users[user.id];
-    userIds.delete(user.id);
+    game.userIds.delete(user.id);
+
+    if (id !== 0 && Object.values(game.users).length === 0)
+      room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
 
     if (game.loserId === user.id) game.loserId = INVALID_ID;
 

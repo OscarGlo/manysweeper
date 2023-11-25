@@ -7,6 +7,8 @@ import http from "http";
 import https from "https";
 import logger from "signale";
 
+import api from "./api";
+
 const DEV = process.env.DEV;
 const PORT = process.env.PORT ?? (DEV ? "80" : "443");
 const PUBLIC_ROOT = join(__dirname, "..", "..", "public");
@@ -14,10 +16,12 @@ const PUBLIC_ROOT = join(__dirname, "..", "..", "public");
 const app = express();
 
 app.use(express.static(PUBLIC_ROOT, { index: false }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(cookieParser());
 
-app.get("/", (req, res) => {
+app.use("/api", api);
+
+app.get("*", (req, res) => {
   res.sendFile(join(PUBLIC_ROOT, "index.html"));
 });
 

@@ -1,6 +1,7 @@
 import { deserialize, serialize } from "../util/serialization";
 
 export enum MessageType {
+  ERROR,
   INIT,
   USER,
   DISCONNECT,
@@ -19,6 +20,7 @@ export type MessageSpecValue = number | [number] | "";
 export type MessageSpec = Record<string, MessageSpecValue>;
 
 export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
+  [MessageType.ERROR]: {},
   [MessageType.INIT]: {
     id: 8,
     mineCount: 10,
@@ -56,7 +58,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
 
 const typeBits = Math.ceil(Math.log2(Object.values(MessageSpecs).length));
 
-export type MessageValue = number | number[] | boolean | string;
+export type MessageValue = number | number[] | boolean | boolean[] | string;
 
 export function serializeMessage(data: MessageValue[]): Uint8Array {
   const type = data[0] as string;

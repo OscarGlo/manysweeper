@@ -23,7 +23,7 @@ export function GameBoard(): React.ReactElement {
   const getCanvas = useCallback(
     (elt: HTMLCanvasElement) => {
       setCanvas(elt);
-      setContext(elt.getContext("2d"));
+      setContext(elt?.getContext("2d"));
     },
     [setCanvas, setContext],
   );

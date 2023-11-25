@@ -4,6 +4,7 @@ import { Timer } from "../util/Timer";
 import { Vector } from "../util/Vector";
 import { shuffle } from "../util/util";
 import { Message, MessageData, MessageType } from "./messages";
+import { IdGen } from "../util/IdGen";
 
 export const WALL = 9;
 export const FLAG = 10;
@@ -29,14 +30,16 @@ export class GameState {
   firstClick: boolean;
   loserId?: number;
   users: Record<string, UserConnection>;
+  userIds: IdGen;
 
-  constructor(width, height, mineCount) {
+  constructor(width: number, height: number, mineCount: number) {
     this.width = width;
     this.height = height;
     this.mineCount = mineCount;
 
     this.timer = new Timer({ max: 999 });
     this.users = {};
+    this.userIds = new IdGen({ min: 1, max: 255 });
 
     this.reset();
   }
@@ -51,6 +54,15 @@ export class GameState {
     this.loserId = undefined;
 
     this.timer.reset();
+
+    // Generate
+    const positions = new Array(this.width * this.height)
+      .fill(0)
+      .map((_, i) => new Vector(Math.floor(i / this.height), i % this.height));
+    const minesPos = shuffle(positions).slice(0, this.mineCount);
+
+    minesPos.forEach((p) => this.mines.set(p, true));
+    this.countMines();
   }
 
   countMines() {
@@ -61,16 +73,6 @@ export class GameState {
       });
       this.counts.set(p, count);
     });
-  }
-
-  generate() {
-    const positions = new Array(this.width * this.height)
-      .fill(0)
-      .map((_, i) => new Vector(Math.floor(i / this.height), i % this.height));
-    const minesPos = shuffle(positions).slice(0, this.mineCount);
-
-    minesPos.forEach((p) => this.mines.set(p, true));
-    this.countMines();
   }
 
   moveFirstMine(pos: Vector) {
@@ -224,7 +226,8 @@ export class GameState {
     const start = border.pop();
 
     const directions: number[] = [];
-    let prev: Vector, current: Vector;
+    let prev: Vector;
+    let current: Vector = undefined;
 
     while (border.length > 0) {
       prev = current ?? start;

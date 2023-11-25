@@ -12,7 +12,7 @@ import { CookieInput } from "./CookieInput";
 import { CookiesContext } from "../contexts/Cookies";
 import { WebSocketContext } from "../contexts/WebSocket";
 
-export function Login(props: PopoverProps): React.ReactElement {
+export function LoginPopover(props: PopoverProps): React.ReactElement {
   const { setCookie } = useContext(CookiesContext);
   const { refresh } = useContext(WebSocketContext);
 
@@ -28,8 +28,10 @@ export function Login(props: PopoverProps): React.ReactElement {
 
   return (
     <Popover {...props} keepMounted>
-      <Stack component="form" gap={2} sx={{ width: "200px", padding: 2 }}>
-        <Typography fontSize="large">Login</Typography>
+      <Stack gap={2} sx={{ width: "200px", padding: 2 }}>
+        <Typography fontSize="large" fontWeight="bold">
+          Login
+        </Typography>
 
         <CookieInput
           cookieName="username"

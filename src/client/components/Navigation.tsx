@@ -4,8 +4,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 import { useToggle } from "../hooks/useToggle";
 import { NavigationButton } from "./NavigationButton";
-import { Login } from "./Login";
-import { Options } from "./Options";
+import { LoginPopover } from "./LoginPopover";
+import { OptionsPopover } from "./OptionsPopover";
 import { CookiesContext } from "../contexts/Cookies";
 
 export function Navigation(): React.ReactElement {
@@ -20,7 +20,13 @@ export function Navigation(): React.ReactElement {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h5">ManySweeper</Typography>
+        <Typography
+          onClick={() => location.replace("/")}
+          variant="h5"
+          sx={{ cursor: "pointer" }}
+        >
+          ManySweeper
+        </Typography>
 
         <NavigationButton
           icon={(props) =>
@@ -33,7 +39,7 @@ export function Navigation(): React.ReactElement {
                 {cookies.username?.split(" ")[1]?.[0]}
               </Avatar>
             ) : (
-              <PersonIcon />
+              <PersonIcon {...props} />
             )
           }
           label="Login"
@@ -50,14 +56,14 @@ export function Navigation(): React.ReactElement {
         />
       </Toolbar>
 
-      <Options
+      <OptionsPopover
         open={optionsOpen}
         anchorEl={optionsAnchor}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         transformOrigin={{ vertical: "top", horizontal: "center" }}
         onClose={toggleOptionsOpen}
       />
-      <Login
+      <LoginPopover
         open={loginOpen}
         anchorEl={loginAnchor}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}

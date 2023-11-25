@@ -20,31 +20,31 @@ export class Skin extends EventEmitter {
   async load(name: string) {
     this.name = name;
 
-    const config = await fetch(`img/skins/${name}/config.json`).then((res) =>
+    const config = await fetch(`/img/skins/${name}/config.json`).then((res) =>
       res.json(),
     );
 
-    const tiles = new AtlasTexture(`img/skins/${name}/tiles.png`, 1, 14);
+    const tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 14);
     const frame = new NineSliceTexture(
-      `img/skins/${name}/frame.png`,
+      `/img/skins/${name}/frame.png`,
       config.frame.top,
       config.frame.bottom,
       config.frame.left,
       config.frame.right,
     );
     const counter = new NineSliceTexture(
-      `img/skins/${name}/counter.png`,
+      `/img/skins/${name}/counter.png`,
       config.counter.top,
       config.counter.bottom,
       config.counter.left,
       config.counter.right,
     );
     const counterNumbers = new AtlasTexture(
-      `img/skins/${name}/counter_numbers.png`,
+      `/img/skins/${name}/counter_numbers.png`,
       1,
       11,
     );
-    const button = new AtlasTexture(`img/skins/${name}/button.png`, 1, 3);
+    const button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 3);
 
     let loadCount = 0;
     const onLoad = () => {

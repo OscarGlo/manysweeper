@@ -15,14 +15,16 @@ import { AppThemeContext } from "../contexts/AppTheme";
 import { SkinContext } from "../contexts/Skin";
 import { CookieInput } from "./CookieInput";
 
-export function Options(props: PopoverProps): React.ReactElement {
+export function OptionsPopover(props: PopoverProps): React.ReactElement {
   const { setMode } = useContext(AppThemeContext);
   const { skin } = useContext(SkinContext);
 
   return (
     <Popover {...props} keepMounted>
-      <Stack component="form" gap={2} sx={{ width: "200px", padding: 2 }}>
-        <Typography fontSize="large">Options</Typography>
+      <Stack gap={2} sx={{ width: "200px", padding: 2 }}>
+        <Typography fontSize="large" fontWeight="bold">
+          Options
+        </Typography>
 
         <CookieInput
           cookieName="skin"
