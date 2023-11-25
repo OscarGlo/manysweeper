@@ -35,7 +35,10 @@ export class GameState {
   constructor(width: number, height: number, mineCount: number) {
     this.width = Math.max(Math.min(width ?? 30, 50), 0);
     this.height = Math.max(Math.min(height ?? 16, 50), 0);
-    this.mineCount = Math.max(Math.min(mineCount ?? 99, width * height - 1), 0);
+    this.mineCount = Math.max(
+      Math.min(mineCount ?? 99, this.width * this.height - 1),
+      0,
+    );
 
     this.timer = new Timer({ max: 999 });
     this.users = {};

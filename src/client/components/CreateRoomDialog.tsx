@@ -136,7 +136,8 @@ export function CreateRoomDialog({
                 value={width}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);
-                  setWidth(parseInt(evt.target.value));
+                  const n = parseInt(evt.target.value);
+                  setWidth(isNaN(n) ? 0 : n);
                 }}
               />
             </Grid>
@@ -151,7 +152,8 @@ export function CreateRoomDialog({
                 value={height}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);
-                  setHeight(parseInt(evt.target.value));
+                  const n = parseInt(evt.target.value);
+                  setHeight(isNaN(n) ? 0 : n);
                 }}
               />
             </Grid>
@@ -166,7 +168,8 @@ export function CreateRoomDialog({
                 value={mines}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);
-                  setMines(parseInt(evt.target.value));
+                  const n = parseInt(evt.target.value);
+                  setMines(isNaN(n) ? 0 : n);
                 }}
               />
             </Grid>
