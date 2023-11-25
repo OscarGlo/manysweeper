@@ -2,7 +2,7 @@ import { CreateRoom } from "./CreateRoom";
 import { GameState } from "./GameState";
 
 export class Room {
-  static TIMEOUT = 1000 * 5;
+  static TIMEOUT = 1000 * 60 * 10;
 
   name: string;
   game: GameState;
