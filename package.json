@@ -5,7 +5,7 @@
 		"build-dev": "cross-env DEV=1 tsc-watch --onSuccess \"node ./dist/server/main\"",
 		"bundle-dev": "watchify -v -t babelify ./dist/client/app.js -o ./public/bundle.js",
 		"build": "tsc && browserify -t babelify ./dist/client/app.js -o ./public/bundle.js",
-		"start": "node ./dist/server/main"
+		"start": "nodemon ./dist/server/main"
 	},
 	"dependencies": {
 		"@babel/preset-env": "^7.23.2",
