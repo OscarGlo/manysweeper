@@ -59,12 +59,14 @@ export function onMouseDown(
 }
 
 export function onMouseMove(
+  ws: WebSocket,
   canvas: HTMLCanvasElement,
   game: GameState,
   skin: Skin,
   evt: React.MouseEvent,
 ) {
   if (game.holding) updateClickedTile(canvas, game, skin, evt);
+  sendPos(ws, getMousePos(canvas, evt));
 }
 
 export function onMouseUp(

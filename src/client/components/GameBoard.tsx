@@ -72,7 +72,7 @@ export function GameBoard(): React.ReactElement {
         if (canvas) onMouseDown(canvas, game, skin, evt);
       }}
       onMouseMove={(evt) => {
-        if (canvas) onMouseMove(canvas, game, skin, evt);
+        if (canvas) onMouseMove(websocket, canvas, game, skin, evt);
       }}
       onMouseUp={(evt) => {
         if (canvas) onMouseUp(websocket, canvas, game, skin, evt);

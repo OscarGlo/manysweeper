@@ -28,7 +28,7 @@ export function updateBoardSize(
 }
 
 const cursor = new Image();
-cursor.src = "img/cursor.png";
+cursor.src = "/img/cursor.png";
 
 function tint(ctx: CanvasRenderingContext2D, color?: Color) {
   if (color) {
