@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import { CreateRoom } from "../../model/CreateRoom";
 import { CookiesContext } from "../contexts/Cookies";
+import { GameState } from "../../model/GameState";
+import { Room } from "../../model/Room";
 
 export interface CreateRoomDialogProps {
   open: boolean;
@@ -88,6 +90,7 @@ export function CreateRoomDialog({
             label="Name"
             size="small"
             fullWidth
+            inputProps={{ maxLength: Room.MAX_NAME_LENGTH }}
             value={name}
             onChange={(evt) => setName(evt.target.value)}
           />
@@ -132,7 +135,11 @@ export function CreateRoomDialog({
                 type="number"
                 size="small"
                 fullWidth
-                inputProps={{ min: 1, max: 50, required: true }}
+                inputProps={{
+                  min: GameState.MIN_WIDTH,
+                  max: GameState.MAX_WIDTH,
+                  required: true,
+                }}
                 value={width}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);
@@ -147,7 +154,11 @@ export function CreateRoomDialog({
                 type="number"
                 size="small"
                 fullWidth
-                inputProps={{ min: 1, max: 50 }}
+                inputProps={{
+                  min: GameState.MIN_HEIGHT,
+                  max: GameState.MAX_HEIGHT,
+                  required: true,
+                }}
                 value={height}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);
@@ -162,7 +173,7 @@ export function CreateRoomDialog({
                 type="number"
                 size="small"
                 fullWidth
-                inputProps={{ min: 1, max: 500 }}
+                inputProps={{ min: 1, max: 500, required: true }}
                 value={mines}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);

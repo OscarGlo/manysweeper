@@ -14,6 +14,11 @@ export type State = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type Border = Vector[];
 
 export class GameState {
+  static MIN_WIDTH = 1;
+  static MAX_WIDTH = 50;
+  static MIN_HEIGHT = 1;
+  static MAX_HEIGHT = 50;
+
   width: number;
   height: number;
   mineCount: number;
@@ -33,8 +38,14 @@ export class GameState {
   userIds: IdGen;
 
   constructor(width: number, height: number, mineCount: number) {
-    this.width = Math.max(Math.min(width ?? 30, 50), 0);
-    this.height = Math.max(Math.min(height ?? 16, 50), 0);
+    this.width = Math.max(
+      Math.min(width ?? GameState.MAX_WIDTH, 50),
+      GameState.MIN_WIDTH,
+    );
+    this.height = Math.max(
+      Math.min(height ?? 16, GameState.MAX_HEIGHT),
+      GameState.MIN_HEIGHT,
+    );
     this.mineCount = Math.max(
       Math.min(mineCount ?? 99, this.width * this.height - 1),
       0,

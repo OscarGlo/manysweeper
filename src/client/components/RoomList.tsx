@@ -79,7 +79,9 @@ export function RoomList(): React.ReactElement {
         columns={columns}
         rows={rooms}
         onRowClick={(row) => navigate(`/room/${row.id}`)}
-        paginationModel={{ page: 0, pageSize: 20 }}
+        initialState={{
+          pagination: { paginationModel: { pageSize: 10 } },
+        }}
         pageSizeOptions={[20]}
         sx={{
           ".MuiDataGrid-cell": {
