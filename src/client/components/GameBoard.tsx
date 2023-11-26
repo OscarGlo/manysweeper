@@ -7,7 +7,12 @@ import React, {
 } from "react";
 import { draw, updateBoardSize, updateCursorPos } from "../board/render";
 import { GameState } from "../../model/GameState";
-import { getMousePos, messageListener, onClick, sendPos } from "../board/board";
+import {
+  messageListener,
+  onMouseDown,
+  onMouseMove,
+  onMouseUp,
+} from "../board/board";
 import { SkinContext } from "../contexts/Skin";
 import { styled } from "@mui/material";
 import { WebSocketContext } from "../contexts/WebSocket";
@@ -28,7 +33,11 @@ export function GameBoard(): React.ReactElement {
     [setCanvas, setContext],
   );
 
-  const game = useMemo(() => new GameState(0, 0, 0), []);
+  const game = useMemo(() => {
+    const state = new GameState(1, 1, 0);
+    state.init = false;
+    return state;
+  }, []);
   const { skin } = useContext(SkinContext);
 
   useEffect(() => {
@@ -59,11 +68,14 @@ export function GameBoard(): React.ReactElement {
     <Canvas
       ref={getCanvas}
       onContextMenu={(evt) => evt.preventDefault()}
+      onMouseDown={(evt) => {
+        if (canvas) onMouseDown(canvas, game, skin, evt);
+      }}
       onMouseMove={(evt) => {
-        if (canvas) sendPos(websocket, getMousePos(canvas, evt));
+        if (canvas) onMouseMove(canvas, game, skin, evt);
       }}
       onMouseUp={(evt) => {
-        if (canvas) onClick(websocket, canvas, game, skin, evt);
+        if (canvas) onMouseUp(websocket, canvas, game, skin, evt);
       }}
       sx={{
         cursor: "url(img/cursor.png), default",

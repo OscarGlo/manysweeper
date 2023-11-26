@@ -101,7 +101,7 @@ export function draw(
   skin: Skin,
   game: GameState,
 ) {
-  if (!drawBoardSize || !skin.loaded) return;
+  if (!drawBoardSize || !skin.loaded || !game.init) return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -148,6 +148,9 @@ export function draw(
     3,
   );
 
+  const chorded =
+    game.clickedTile != null && game.board.get(game.clickedTile) < 8;
+
   // Board
   game.board.forEachCell((n, pos) => {
     const isMine = game.mines?.get(pos) ?? false;
@@ -158,12 +161,21 @@ export function draw(
     );
     const tileSize = new Vector(TILE_SIZE, TILE_SIZE);
 
+    const clicked =
+      n === WALL &&
+      (pos.equals(game.clickedTile) ||
+        (chorded && pos.euclidean(game.clickedTile) < 2));
+
     skin.tiles.drawTile(
       ctx,
-      n < 8 || (isMine && n !== FLAG) ? new Vector(1, 0) : new Vector(0, 0),
+      clicked || n < 8 || (isMine && n !== FLAG)
+        ? new Vector(1, 0)
+        : new Vector(0, 0),
       tilePos,
       tileSize,
     );
+
+    if (clicked) return;
 
     if (isMine && n !== FLAG) {
       skin.tiles.drawTile(ctx, new Vector(1, 0), tilePos, tileSize);

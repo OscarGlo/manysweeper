@@ -51,13 +51,17 @@ export class Vector {
     return this;
   }
 
-  equals(v: Vector) {
-    return this.x === v.x && this.y === v.y;
+  equals(v?: Vector) {
+    return v != null && this.x === v.x && this.y === v.y;
   }
 
   hamming(v: Vector): number {
     const diff = this.minus(v);
     return Math.abs(diff.x) + Math.abs(diff.y);
+  }
+  euclidean(v: Vector): number {
+    const diff = this.minus(v);
+    return Math.sqrt(diff.x ** 2 + diff.y ** 2);
   }
 
   toString(): string {

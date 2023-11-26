@@ -13,5 +13,7 @@ export class Room {
   constructor(options: CreateRoom) {
     this.name = (options.name ?? "New room").substring(0, Room.MAX_NAME_LENGTH);
     this.game = new GameState(options.width, options.height, options.mines);
+
+    this.game.generate();
   }
 }

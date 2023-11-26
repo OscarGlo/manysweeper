@@ -37,6 +37,10 @@ export class GameState {
   users: Record<string, UserConnection>;
   userIds: IdGen;
 
+  holding?: boolean;
+  clickedTile?: Vector;
+  init: boolean;
+
   constructor(width: number, height: number, mineCount: number) {
     this.width = Math.max(
       Math.min(width ?? GameState.MAX_WIDTH, 50),
@@ -48,7 +52,7 @@ export class GameState {
     );
     this.mineCount = Math.max(
       Math.min(mineCount ?? 99, this.width * this.height - 1),
-      0,
+      1,
     );
 
     this.timer = new Timer({ max: 999 });
@@ -56,6 +60,7 @@ export class GameState {
     this.userIds = new IdGen({ min: 1, max: 255 });
 
     this.reset();
+    this.init = true;
   }
 
   reset() {
@@ -68,8 +73,9 @@ export class GameState {
     this.loserId = undefined;
 
     this.timer.reset();
+  }
 
-    // Generate
+  generate() {
     const positions = new Array(this.width * this.height)
       .fill(0)
       .map((_, i) => new Vector(Math.floor(i / this.height), i % this.height));

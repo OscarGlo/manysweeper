@@ -32,7 +32,42 @@ export function getMousePos(
   return new Vector(evt.clientX - rect.left, evt.clientY - rect.top);
 }
 
-export function onClick(
+function updateClickedTile(
+  canvas: HTMLCanvasElement,
+  game: GameState,
+  skin: Skin,
+  evt: React.MouseEvent,
+) {
+  const pos = getMousePos(canvas, evt);
+  const tile = getTilePos(skin, pos);
+  game.clickedTile =
+    game.board.inBounds(tile) && game.board.get(tile) != FLAG
+      ? tile
+      : undefined;
+}
+
+export function onMouseDown(
+  canvas: HTMLCanvasElement,
+  game: GameState,
+  skin: Skin,
+  evt: React.MouseEvent,
+) {
+  if (!game.win && !game.loserId && evt.button === 0) {
+    game.holding = true;
+    updateClickedTile(canvas, game, skin, evt);
+  }
+}
+
+export function onMouseMove(
+  canvas: HTMLCanvasElement,
+  game: GameState,
+  skin: Skin,
+  evt: React.MouseEvent,
+) {
+  if (game.holding) updateClickedTile(canvas, game, skin, evt);
+}
+
+export function onMouseUp(
   ws: WebSocket,
   canvas: HTMLCanvasElement,
   game: GameState,
@@ -43,6 +78,8 @@ export function onClick(
   const button = evt.button;
 
   const [resetPos, resetSize] = getResetPosSize(skin);
+
+  game.holding = false;
 
   if (
     button === 0 &&
@@ -56,6 +93,8 @@ export function onClick(
   } else if (button === 0 || button === 1 || button === 2) {
     const tilePos = getTilePos(skin, pos);
 
+    let sendMessage = true;
+
     if (game.board.inBounds(tilePos)) {
       const state = game.board.get(tilePos);
       if (
@@ -65,7 +104,7 @@ export function onClick(
         (state === WALL && button === 1) ||
         (state === FLAG && button !== 2)
       )
-        return;
+        sendMessage = false;
 
       if (state < 8) {
         let chord = false;
@@ -74,18 +113,20 @@ export function onClick(
           if (s === FLAG) count++;
           else if (s === WALL) chord = true;
         });
-        if (state !== count || !chord) return;
+        if (state !== count || !chord) sendMessage = false;
       }
 
-      send(ws, [
-        button === 0
-          ? MessageType.TILE
-          : button === 1
-          ? MessageType.CHORD
-          : MessageType.FLAG,
-        tilePos.x,
-        tilePos.y,
-      ]);
+      if (sendMessage)
+        send(ws, [
+          button === 0
+            ? MessageType.TILE
+            : button === 1
+            ? MessageType.CHORD
+            : MessageType.FLAG,
+          tilePos.x,
+          tilePos.y,
+        ]);
+      else game.clickedTile = undefined;
     }
   }
 }
@@ -106,6 +147,7 @@ export async function messageListener(
   switch (msg.type) {
     case MessageType.INIT:
       game.reset();
+      game.init = true;
       game.width = msg.width as number;
       game.height = msg.height as number;
       game.timer.time = msg.time as number;
@@ -143,11 +185,13 @@ export async function messageListener(
       break;
 
     case MessageType.TILE:
+      game.clickedTile = undefined;
       game.timer.start();
       game.board.set(pos, (msg.tile as number) ?? 0);
       break;
 
     case MessageType.CHORD:
+      game.clickedTile = undefined;
       game.timer.start();
       // eslint-disable-next-line no-case-declarations
       let i = 0;
@@ -163,6 +207,7 @@ export async function messageListener(
       break;
 
     case MessageType.HOLE:
+      game.clickedTile = undefined;
       game.timer.start();
       game.openBorder(msg);
       if (msg.last) game.openHole(msg);

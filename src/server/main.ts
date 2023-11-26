@@ -241,6 +241,7 @@ wss.on("connection", (ws, req) => {
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
         game.reset();
+        game.generate();
         broadcast([MessageType.RESET, game.mineCount]);
       }
     } else if (msg.type === MessageType.CURSOR) {
