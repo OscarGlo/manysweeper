@@ -21,6 +21,7 @@ export function CookiesProvider({
     (key: string, value: string) => {
       document.cookie = cookie.serialize(key, value, {
         maxAge: 30 * 24 * 60 * 60,
+        path: "/",
       });
       cookies[key] = value;
       setCookies(cookies);
