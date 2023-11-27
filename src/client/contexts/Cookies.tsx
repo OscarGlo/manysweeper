@@ -19,7 +19,9 @@ export function CookiesProvider({
 
   const setCookie = useCallback(
     (key: string, value: string) => {
-      document.cookie = cookie.serialize(key, value);
+      document.cookie = cookie.serialize(key, value, {
+        maxAge: 30 * 24 * 60 * 60,
+      });
       cookies[key] = value;
       setCookies(cookies);
     },
