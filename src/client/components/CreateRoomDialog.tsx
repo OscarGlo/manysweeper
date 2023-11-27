@@ -181,6 +181,18 @@ export function CreateRoomDialog({
                 }}
               />
             </Grid>
+
+            <Grid
+              item
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              xs={6}
+            >
+              <Typography>
+                Mine density: {Math.floor((100 * mines) / (width * height))}%
+              </Typography>
+            </Grid>
           </Grid>
 
           <Button type="submit">Create</Button>
