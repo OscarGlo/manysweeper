@@ -8,11 +8,27 @@ import {
 } from "@mui/x-data-grid";
 import { Alert, Button, Paper, Snackbar } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import PublicIcon from "@mui/icons-material/Public";
+import LockIcon from "@mui/icons-material/Lock";
 import { CreateRoomDialog } from "./CreateRoomDialog";
 import { CreateRoom } from "../../model/CreateRoom";
+import { PasswordDialog } from "./PasswordDialog";
+import { RoomInfo } from "../../model/RoomInfo";
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
+  {
+    field: "private",
+    headerName: "",
+    type: "boolean",
+    width: 50,
+    renderCell: (params) =>
+      params.row.private ? (
+        <LockIcon fontSize="small" />
+      ) : (
+        <PublicIcon fontSize="small" />
+      ),
+  },
   { field: "name", headerName: "Name", type: "string", width: 200 },
   {
     field: "board",
@@ -38,7 +54,7 @@ export function RoomList(): React.ReactElement {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms] = useState<RoomInfo[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -70,19 +86,29 @@ export function RoomList(): React.ReactElement {
     [setRooms, rooms],
   );
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [alertOpen, setAlertOpen] = useState(params.has("errorId"));
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogRoom, setPasswordDialogRoom] = useState<RoomInfo>();
+  const [alertOpen, setAlertOpen] = useState(params.size > 0);
 
   return (
     <Paper>
       <DataGrid
         columns={columns}
         rows={rooms}
-        onRowClick={(row) => navigate(`/room/${row.id}`)}
+        onRowClick={(params, evt) => {
+          evt.defaultMuiPrevented = true;
+          if (params.row.private) {
+            setPasswordDialogRoom(params.row as RoomInfo);
+            setPasswordDialogOpen(true);
+          } else {
+            navigate(`/room/${params.row.id}`);
+          }
+        }}
         initialState={{
           pagination: { paginationModel: { pageSize: 10 } },
         }}
-        pageSizeOptions={[20]}
+        pageSizeOptions={[10]}
         sx={{
           ".MuiDataGrid-cell": {
             cursor: "pointer",
@@ -93,7 +119,7 @@ export function RoomList(): React.ReactElement {
           footer: () => (
             <GridFooterContainer>
               <Button
-                onClick={() => setDialogOpen(true)}
+                onClick={() => setCreateDialogOpen(true)}
                 startIcon={<AddIcon />}
                 sx={{ marginLeft: 1 }}
               >
@@ -106,11 +132,18 @@ export function RoomList(): React.ReactElement {
       />
 
       <CreateRoomDialog
-        open={dialogOpen}
+        open={createDialogOpen}
         onSubmit={createRoom}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => setCreateDialogOpen(false)}
       />
 
+      <PasswordDialog
+        open={passwordDialogOpen}
+        onClose={() => setPasswordDialogOpen(false)}
+        room={passwordDialogRoom}
+      />
+
+      {/* TODO: Extract error functionality */}
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={alertOpen}
@@ -120,7 +153,9 @@ export function RoomList(): React.ReactElement {
         autoHideDuration={5000}
       >
         <Alert severity="error" sx={{ width: "100%" }}>
-          Room {params.get("errorId")} does not exist
+          {params.get("wrongPass")
+            ? `Room ${params.get("errorId")} has a password`
+            : `Room ${params.get("errorId")} does not exist`}
         </Alert>
       </Snackbar>
     </Paper>

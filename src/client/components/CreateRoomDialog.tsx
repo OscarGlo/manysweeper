@@ -9,8 +9,12 @@ import {
   RadioGroup,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import PublicIcon from "@mui/icons-material/Public";
+import LockIcon from "@mui/icons-material/Lock";
 import { CreateRoom } from "../../model/CreateRoom";
 import { CookiesContext } from "../contexts/Cookies";
 import { GameState } from "../../model/GameState";
@@ -38,6 +42,8 @@ export function CreateRoomDialog({
   const [name, setName] = useState(
     cookies.username ? `${cookies.username}'s room` : "New room",
   );
+  const [priv, setPriv] = useState(false);
+  const [password, setPassword] = useState<string>();
   const [width, setWidth] = useState(30);
   const [height, setHeight] = useState(16);
   const [mines, setMines] = useState(99);
@@ -46,10 +52,10 @@ export function CreateRoomDialog({
   const submit = useCallback(
     (evt: FormEvent) => {
       evt.preventDefault();
-      onSubmit({ name, width, height, mines });
+      onSubmit({ name, password, width, height, mines });
       props.onClose();
     },
-    [onSubmit, name, width, height, mines, props.onClose],
+    [onSubmit, name, password, width, height, mines, props.onClose],
   );
 
   const updateDifficulty = useCallback(
@@ -94,6 +100,36 @@ export function CreateRoomDialog({
             value={name}
             onChange={(evt) => setName(evt.target.value)}
           />
+
+          <Stack direction="row" gap={2}>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={priv}
+              onChange={(_, priv) => {
+                setPriv(priv);
+                if (!priv) setPassword(undefined);
+              }}
+            >
+              <ToggleButton value={false}>
+                <PublicIcon />
+              </ToggleButton>
+
+              <ToggleButton value={true}>
+                <LockIcon />
+              </ToggleButton>
+            </ToggleButtonGroup>
+
+            <TextField
+              label="Password"
+              size="small"
+              type="password"
+              fullWidth
+              disabled={!priv}
+              value={password ?? ""}
+              onChange={(evt) => setPassword(evt.target.value || undefined)}
+            />
+          </Stack>
 
           <Box>
             <Typography fontSize="medium" fontWeight="bold">
@@ -173,7 +209,7 @@ export function CreateRoomDialog({
                 type="number"
                 size="small"
                 fullWidth
-                inputProps={{ min: 1, max: 500, required: true }}
+                inputProps={{ min: 1, max: width * height - 1, required: true }}
                 value={mines}
                 onChange={(evt) => {
                   setLevel(Level.CUSTOM);

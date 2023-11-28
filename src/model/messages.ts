@@ -19,8 +19,15 @@ export enum MessageType {
 export type MessageSpecValue = number | [number] | "";
 export type MessageSpec = Record<string, MessageSpecValue>;
 
+export enum ErrorType {
+  NOT_FOUND,
+  WRONG_PASS,
+}
+
 export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
-  [MessageType.ERROR]: {},
+  [MessageType.ERROR]: {
+    error: Math.ceil(Math.log2(Object.values(ErrorType).length)),
+  },
   [MessageType.INIT]: {
     id: 8,
     mineCount: 10,

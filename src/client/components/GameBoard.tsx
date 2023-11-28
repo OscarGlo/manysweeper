@@ -50,7 +50,7 @@ export function GameBoard(): React.ReactElement {
   }, [canvas, skin, game]);
 
   useEffect(() => {
-    setMessageListener((evt) => messageListener(canvas, skin, game, evt));
+    setMessageListener((msg) => messageListener(canvas, skin, game, msg));
   }, [messageListener, canvas, skin, game]);
 
   const update = useCallback(() => {

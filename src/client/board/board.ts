@@ -1,6 +1,5 @@
 import {
-  deserializeMessage,
-  formatMessageData,
+  Message,
   MessageType,
   MessageValue,
   serializeMessage,
@@ -137,11 +136,8 @@ export async function messageListener(
   canvas: HTMLCanvasElement | undefined,
   skin: Skin,
   game: GameState,
-  evt: MessageEvent,
+  msg: Message,
 ) {
-  const buf = await evt.data.arrayBuffer();
-  const msg = formatMessageData(deserializeMessage(new Uint8Array(buf)));
-
   let pos: Vector;
   if (msg.x != null && msg.y != null)
     pos = new Vector(msg.x as number, msg.y as number);

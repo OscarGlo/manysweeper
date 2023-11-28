@@ -1,10 +1,19 @@
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { WithChildren } from "../util/WithChildren";
 import { useNavigate } from "react-router-dom";
+import qs from "qs";
+import { WebSocketQuery } from "../../model/WebSocketQuery";
+import {
+  deserializeMessage,
+  ErrorType,
+  formatMessageData,
+  Message,
+  MessageType,
+} from "../../model/messages";
 
 export interface WebSocketValue {
   websocket?: WebSocket;
-  setMessageListener: (listener: (evt: MessageEvent) => void) => void;
+  setMessageListener: (listener: (msg: Message) => void) => void;
   refresh: () => void;
 }
 
@@ -14,16 +23,16 @@ export const WebSocketContext = createContext<WebSocketValue>({
 });
 
 export interface WebSocketProviderProps extends WithChildren {
-  query?: string;
+  query: WebSocketQuery;
 }
 
 export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
   const navigate = useNavigate();
   const [websocket, setWebsocket] = useState<WebSocket>();
   const [messageListener, setMessageListener] =
-    useState<(evt: MessageEvent) => void>();
+    useState<(msg: Message) => void>();
 
-  const url = location.host + (query ? `?${query}` : "");
+  const url = location.host + "?" + qs.stringify(query);
 
   const init = useCallback(
     () => setWebsocket(new WebSocket("wss://" + url)),
@@ -35,11 +44,17 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
   const onMessage = useCallback(
     async (evt: MessageEvent) => {
       const data = new Uint8Array(await evt.data.arrayBuffer());
-      if (data.length === 0) return navigate(`/?errorId=${query}`);
+      const msg = formatMessageData(deserializeMessage(data));
 
-      messageListener(evt);
+      if (msg.type === MessageType.ERROR) {
+        const params = { errorId: query.id };
+        if (msg.error === ErrorType.WRONG_PASS) params["wrongPass"] = true;
+        return navigate(`/?${qs.stringify(params)}`);
+      }
+
+      messageListener(msg);
     },
-    [messageListener],
+    [query, navigate, messageListener],
   );
 
   useEffect(() => {
@@ -52,7 +67,6 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
 
   useEffect(() => {
     if (websocket == null) return;
-
     const onError = () => setWebsocket(new WebSocket("ws://" + url));
     websocket.addEventListener("error", onError);
 

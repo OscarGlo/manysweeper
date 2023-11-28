@@ -3,6 +3,7 @@ import cookie from "cookie";
 
 import {
   deserializeMessage,
+  ErrorType,
   formatMessageData,
   MessageType,
   MessageValue,
@@ -16,6 +17,9 @@ import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
 import { IdGen } from "../util/IdGen";
 import { Room } from "../model/Room";
+import qs from "qs";
+import { WebSocketQuery } from "../model/WebSocketQuery";
+import bcrypt from "bcryptjs";
 
 const wss = new WebSocketServer({ server });
 
@@ -54,15 +58,23 @@ function userMessageData(user: UserConnection) {
 }
 
 wss.on("connection", (ws, req) => {
-  function send(message) {
+  function send(message: MessageValue[]) {
     ws.send(serializeMessage(message), { binary: true });
   }
 
-  const id = parseInt(req.url.split("?", 2)[1]);
+  const query = req.url.split("?", 2)[1];
+  const { id: idStr, password } = qs.parse(query) as unknown as WebSocketQuery;
+  const id = parseInt(idStr);
 
-  if (rooms[id] == null) return send([MessageType.ERROR]);
+  if (rooms[id] == null) return send([MessageType.ERROR, ErrorType.NOT_FOUND]);
 
   const room = rooms[id];
+
+  if (
+    room.passwordHash &&
+    (password == null || !bcrypt.compare(password, room.passwordHash))
+  )
+    return send([MessageType.ERROR, ErrorType.WRONG_PASS]);
 
   clearTimeout(room.timeout);
   room.timeout = undefined;
@@ -143,7 +155,7 @@ wss.on("connection", (ws, req) => {
           borders = game.open(pos);
         }
       } else {
-        let failed;
+        let failed: boolean;
         [failed, borders] = game.chord(pos);
         if (failed) {
           broadcast([MessageType.CHORD, x, y]);

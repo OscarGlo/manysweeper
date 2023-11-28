@@ -8,6 +8,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { SkinProvider } from "./contexts/Skin";
 import { RoomList } from "./components/RoomList";
 import { Room } from "./components/Room";
+import { PasswordProvider } from "./contexts/Password";
 
 const router = createBrowserRouter([
   {
@@ -25,19 +26,21 @@ function App(): React.ReactElement {
     <CookiesProvider>
       <AppThemeProvider>
         <SkinProvider>
-          <Stack direction="column" height="100vh">
-            <Navigation />
-            <Container
-              sx={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <RouterProvider router={router} />
-            </Container>
-          </Stack>
+          <PasswordProvider>
+            <Stack direction="column" height="100vh">
+              <Navigation />
+              <Container
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <RouterProvider router={router} />
+              </Container>
+            </Stack>
+          </PasswordProvider>
         </SkinProvider>
       </AppThemeProvider>
     </CookiesProvider>
