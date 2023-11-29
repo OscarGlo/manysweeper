@@ -3,30 +3,50 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { draw, updateBoardSize, updateCursorPos } from "../board/render";
+import {
+  draw,
+  getTilePos,
+  updateBoardSize,
+  updateCursorPos,
+} from "../board/render";
 import { GameState } from "../../model/GameState";
 import {
+  Action,
   messageListener,
-  onMouseDown,
+  onActionDown,
+  onActionUp,
   onMouseMove,
-  onMouseUp,
 } from "../board/board";
 import { SkinContext } from "../contexts/Skin";
 import { styled } from "@mui/material";
 import { WebSocketContext } from "../contexts/WebSocket";
+import { Vector } from "../../util/Vector";
 
 const Canvas = styled("canvas")({});
+
+const mouseActions = [Action.BREAK, Action.CHORD, Action.FLAG];
+const keyActions = {
+  KeyZ: Action.BREAK,
+  KeyX: Action.FLAG,
+  KeyC: Action.CHORD,
+};
 
 export function GameBoard(): React.ReactElement {
   const [canvas, setCanvas] = useState<HTMLCanvasElement>();
   const [context, setContext] = useState<CanvasRenderingContext2D>();
+  const mousePos = useRef(new Vector());
+  function setMousePos(pos: Vector) {
+    mousePos.current = pos;
+  }
 
   const { websocket, setMessageListener } = useContext(WebSocketContext);
 
   const getCanvas = useCallback(
     (elt: HTMLCanvasElement) => {
+      elt.focus();
       setCanvas(elt);
       setContext(elt?.getContext("2d"));
     },
@@ -68,14 +88,31 @@ export function GameBoard(): React.ReactElement {
     <Canvas
       ref={getCanvas}
       onContextMenu={(evt) => evt.preventDefault()}
-      onMouseDown={(evt) => {
-        if (canvas) onMouseDown(canvas, game, skin, evt);
-      }}
       onMouseMove={(evt) => {
-        if (canvas) onMouseMove(websocket, canvas, game, skin, evt);
+        if (canvas)
+          onMouseMove(websocket, canvas, game, skin, evt, setMousePos);
+      }}
+      onMouseDown={(evt) => {
+        const action = mouseActions[evt.button];
+        const tile = getTilePos(skin, mousePos.current);
+        if (action != null && canvas) onActionDown(game, tile, action);
       }}
       onMouseUp={(evt) => {
-        if (canvas) onMouseUp(websocket, canvas, game, skin, evt);
+        const action = mouseActions[evt.button];
+        if (action != null && canvas)
+          onActionUp(websocket, mousePos.current, game, skin, action);
+      }}
+      tabIndex={0}
+      onKeyDown={(evt) => {
+        console.log(evt.code);
+        const action = keyActions[evt.code];
+        const tile = getTilePos(skin, mousePos.current);
+        if (action != null && canvas) onActionDown(game, tile, action);
+      }}
+      onKeyUp={(evt) => {
+        const action = keyActions[evt.code];
+        if (action != null && canvas)
+          onActionUp(websocket, mousePos.current, game, skin, action);
       }}
       sx={{
         cursor: "url(img/cursor.png), default",

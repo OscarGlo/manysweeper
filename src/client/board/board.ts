@@ -31,30 +31,11 @@ export function getMousePos(
   return new Vector(evt.clientX - rect.left, evt.clientY - rect.top);
 }
 
-function updateClickedTile(
-  canvas: HTMLCanvasElement,
-  game: GameState,
-  skin: Skin,
-  evt: React.MouseEvent,
-) {
-  const pos = getMousePos(canvas, evt);
-  const tile = getTilePos(skin, pos);
+function updateClickedTile(game: GameState, tile: Vector) {
   game.clickedTile =
     game.board.inBounds(tile) && game.board.get(tile) != FLAG
       ? tile
       : undefined;
-}
-
-export function onMouseDown(
-  canvas: HTMLCanvasElement,
-  game: GameState,
-  skin: Skin,
-  evt: React.MouseEvent,
-) {
-  if (!game.win && !game.loserId && evt.button === 0) {
-    game.holding = true;
-    updateClickedTile(canvas, game, skin, evt);
-  }
 }
 
 export function onMouseMove(
@@ -63,72 +44,85 @@ export function onMouseMove(
   game: GameState,
   skin: Skin,
   evt: React.MouseEvent,
-) {
-  if (game.holding) updateClickedTile(canvas, game, skin, evt);
-  sendPos(ws, getMousePos(canvas, evt));
-}
-
-export function onMouseUp(
-  ws: WebSocket,
-  canvas: HTMLCanvasElement,
-  game: GameState,
-  skin: Skin,
-  evt: React.MouseEvent,
+  setMousePos: (pos: Vector) => void,
 ) {
   const pos = getMousePos(canvas, evt);
-  const button = evt.button;
+  setMousePos(pos);
+  const tile = getTilePos(skin, pos);
+  if (game.holding) updateClickedTile(game, tile);
+  sendPos(ws, pos);
+}
 
+export enum Action {
+  BREAK,
+  FLAG,
+  CHORD,
+}
+
+export function onActionDown(game: GameState, tile: Vector, action: Action) {
+  if (!game.win && !game.loserId && action === Action.BREAK) {
+    game.holding = true;
+    updateClickedTile(game, tile);
+  }
+}
+
+export function onActionUp(
+  ws: WebSocket,
+  pos: Vector,
+  game: GameState,
+  skin: Skin,
+  action: Action,
+) {
   const [resetPos, resetSize] = getResetPosSize(skin);
 
   game.holding = false;
 
   if (
-    button === 0 &&
+    action === Action.BREAK &&
     pos.x >= resetPos.x &&
     pos.y >= resetPos.y &&
     pos.x <= resetPos.x + resetSize.x &&
     pos.y <= resetPos.y + resetSize.y &&
     (game.win || game.loserId != null)
-  ) {
-    send(ws, [MessageType.RESET]);
-  } else if (button === 0 || button === 1 || button === 2) {
-    const tilePos = getTilePos(skin, pos);
+  )
+    return send(ws, [MessageType.RESET]);
 
-    let sendMessage = true;
+  const tilePos = getTilePos(skin, pos);
 
-    if (game.board.inBounds(tilePos)) {
-      const state = game.board.get(tilePos);
-      if (
-        state === 0 ||
-        state === 8 ||
-        (state < 8 && button === 2) ||
-        (state === WALL && button === 1) ||
-        (state === FLAG && button !== 2)
-      )
-        sendMessage = false;
+  let sendMessage = true;
 
-      if (state < 8) {
-        let chord = false;
-        let count = 0;
-        game.board.forEachNeighbor(tilePos, (s) => {
-          if (s === FLAG) count++;
-          else if (s === WALL) chord = true;
-        });
-        if (state !== count || !chord) sendMessage = false;
-      }
+  if (game.board.inBounds(tilePos)) {
+    const state = game.board.get(tilePos);
+    if (
+      state === 0 ||
+      state === 8 ||
+      (state < 8 && action === Action.FLAG) ||
+      (state === WALL && action === Action.CHORD) ||
+      (state === FLAG && action !== Action.FLAG)
+    )
+      sendMessage = false;
 
-      if (sendMessage)
-        send(ws, [
-          button === 0
-            ? MessageType.TILE
-            : button === 1
-            ? MessageType.CHORD
-            : MessageType.FLAG,
-          tilePos.x,
-          tilePos.y,
-        ]);
-      else game.clickedTile = undefined;
+    if (sendMessage && state < 8) {
+      let chord = false;
+      let count = 0;
+      game.board.forEachNeighbor(tilePos, (s) => {
+        if (s === FLAG) count++;
+        else if (s === WALL) chord = true;
+      });
+      if (state !== count || !chord) sendMessage = false;
     }
+
+    if (sendMessage)
+      send(ws, [
+        action === Action.BREAK
+          ? MessageType.TILE
+          : action === Action.CHORD
+          ? MessageType.CHORD
+          : MessageType.FLAG,
+        tilePos.x,
+        tilePos.y,
+      ]);
+    else game.clickedTile = undefined;
   }
 }
 
