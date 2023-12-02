@@ -149,7 +149,7 @@ export function draw(
   );
 
   const chorded =
-    game.clickedTile != null && game.board.get(game.clickedTile) < 8;
+    game.clickedTile != null && game.board.get(game.clickedTile) < WALL;
 
   // Board
   game.board.forEachCell((n, pos) => {
@@ -168,7 +168,7 @@ export function draw(
 
     skin.tiles.drawTile(
       ctx,
-      clicked || n < 8 || (isMine && n !== FLAG)
+      clicked || n < WALL || (isMine && n !== FLAG)
         ? new Vector(1, 0)
         : new Vector(0, 0),
       tilePos,

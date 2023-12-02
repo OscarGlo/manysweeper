@@ -45,10 +45,12 @@ export function GameBoard(): React.ReactElement {
   const { websocket, setMessageListener } = useContext(WebSocketContext);
 
   const getCanvas = useCallback(
-    (elt: HTMLCanvasElement) => {
-      elt.focus();
-      setCanvas(elt);
-      setContext(elt?.getContext("2d"));
+    (elt?: HTMLCanvasElement) => {
+      if (elt) {
+        elt.focus();
+        setCanvas(elt);
+        setContext(elt?.getContext("2d"));
+      }
     },
     [setCanvas, setContext],
   );
@@ -104,7 +106,6 @@ export function GameBoard(): React.ReactElement {
       }}
       tabIndex={0}
       onKeyDown={(evt) => {
-        console.log(evt.code);
         const action = keyActions[evt.code];
         const tile = getTilePos(skin, mousePos.current);
         if (action != null && canvas) onActionDown(game, tile, action);
@@ -117,6 +118,7 @@ export function GameBoard(): React.ReactElement {
       sx={{
         cursor: "url(img/cursor.png), default",
         margin: "auto",
+        outline: "none",
       }}
     />
   );
