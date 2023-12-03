@@ -116,8 +116,8 @@ export function GameBoard(): React.ReactElement {
           onActionUp(websocket, mousePos.current, game, skin, action);
       }}
       sx={{
+        display: "inline-block",
         cursor: "url(img/cursor.png), default",
-        margin: "auto",
         outline: "none",
       }}
     />

@@ -14,6 +14,7 @@ import { CreateRoomDialog } from "./CreateRoomDialog";
 import { CreateRoom } from "../../model/CreateRoom";
 import { PasswordDialog } from "./PasswordDialog";
 import { RoomInfo } from "../../model/RoomInfo";
+import { Center } from "./Center";
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
@@ -92,72 +93,74 @@ export function RoomList(): React.ReactElement {
   const [alertOpen, setAlertOpen] = useState(params.size > 0);
 
   return (
-    <Paper>
-      <DataGrid
-        columns={columns}
-        rows={rooms}
-        onRowClick={(params, evt) => {
-          evt.defaultMuiPrevented = true;
-          if (params.row.private) {
-            setPasswordDialogRoom(params.row as RoomInfo);
-            setPasswordDialogOpen(true);
-          } else {
-            navigate(`/room/${params.row.id}`);
-          }
-        }}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-        }}
-        pageSizeOptions={[10]}
-        sx={{
-          ".MuiDataGrid-cell": {
-            cursor: "pointer",
-          },
-        }}
-        loading={loading}
-        slots={{
-          footer: () => (
-            <GridFooterContainer>
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                startIcon={<AddIcon />}
-                sx={{ marginLeft: 1 }}
-              >
-                Create room
-              </Button>
-              <GridFooter sx={{ border: "none" }} />
-            </GridFooterContainer>
-          ),
-        }}
-      />
+    <Center>
+      <Paper>
+        <DataGrid
+          columns={columns}
+          rows={rooms}
+          onRowClick={(params, evt) => {
+            evt.defaultMuiPrevented = true;
+            if (params.row.private) {
+              setPasswordDialogRoom(params.row as RoomInfo);
+              setPasswordDialogOpen(true);
+            } else {
+              navigate(`/room/${params.row.id}`);
+            }
+          }}
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+          }}
+          pageSizeOptions={[10]}
+          sx={{
+            ".MuiDataGrid-cell": {
+              cursor: "pointer",
+            },
+          }}
+          loading={loading}
+          slots={{
+            footer: () => (
+              <GridFooterContainer>
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  startIcon={<AddIcon />}
+                  sx={{ marginLeft: 1 }}
+                >
+                  Create room
+                </Button>
+                <GridFooter sx={{ border: "none" }} />
+              </GridFooterContainer>
+            ),
+          }}
+        />
 
-      <CreateRoomDialog
-        open={createDialogOpen}
-        onSubmit={createRoom}
-        onClose={() => setCreateDialogOpen(false)}
-      />
+        <CreateRoomDialog
+          open={createDialogOpen}
+          onSubmit={createRoom}
+          onClose={() => setCreateDialogOpen(false)}
+        />
 
-      <PasswordDialog
-        open={passwordDialogOpen}
-        onClose={() => setPasswordDialogOpen(false)}
-        room={passwordDialogRoom}
-      />
+        <PasswordDialog
+          open={passwordDialogOpen}
+          onClose={() => setPasswordDialogOpen(false)}
+          room={passwordDialogRoom}
+        />
 
-      {/* TODO: Extract error functionality */}
-      <Snackbar
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        open={alertOpen}
-        onClose={(_, reason) => {
-          if (reason !== "clickaway") setAlertOpen(false);
-        }}
-        autoHideDuration={5000}
-      >
-        <Alert severity="error" sx={{ width: "100%" }}>
-          {params.get("wrongPass")
-            ? `Room ${params.get("errorId")} has a password`
-            : `Room ${params.get("errorId")} does not exist`}
-        </Alert>
-      </Snackbar>
-    </Paper>
+        {/* TODO: Extract error functionality */}
+        <Snackbar
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          open={alertOpen}
+          onClose={(_, reason) => {
+            if (reason !== "clickaway") setAlertOpen(false);
+          }}
+          autoHideDuration={5000}
+        >
+          <Alert severity="error" sx={{ width: "100%" }}>
+            {params.get("wrongPass")
+              ? `Room ${params.get("errorId")} has a password`
+              : `Room ${params.get("errorId")} does not exist`}
+          </Alert>
+        </Snackbar>
+      </Paper>
+    </Center>
   );
 }
