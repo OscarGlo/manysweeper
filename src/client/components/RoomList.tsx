@@ -15,6 +15,7 @@ import { CreateRoom } from "../../model/CreateRoom";
 import { PasswordDialog } from "./PasswordDialog";
 import { RoomInfo } from "../../model/RoomInfo";
 import { Center } from "./Center";
+import { post } from "../util/post";
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
@@ -73,11 +74,7 @@ export function RoomList(): React.ReactElement {
   const createRoom = useCallback(
     (data: CreateRoom) => {
       setLoading(true);
-      fetch("/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
+      post("/api/rooms", data)
         .then((res) => res.json())
         .then((room) => {
           setRooms([...rooms, room]);

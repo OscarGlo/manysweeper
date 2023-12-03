@@ -3,6 +3,7 @@ import { Button, Dialog, Stack, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { RoomInfo } from "../../model/RoomInfo";
 import { PasswordContext } from "../contexts/Password";
+import { post } from "../util/post";
 
 interface PasswordDialogProps {
   onClose: () => void;
@@ -21,18 +22,16 @@ export function PasswordDialog({ room, ...props }: PasswordDialogProps) {
   const submit = useCallback(
     async (evt: FormEvent) => {
       evt.preventDefault();
-      const status = await fetch(`/api/rooms/${room?.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      }).then((res) => res.status);
+      const res = await post(`/api/rooms/${room?.id}`, { password });
 
-      if (status === 200) {
+      if (res.status === 200) {
         setContextPassword(password);
         navigate(`/room/${room?.id}`);
       } else {
         setError(
-          status === 404 ? `Room ${room?.id} not found` : "Invalid password",
+          res.status === 404
+            ? `Room ${room?.id} not found`
+            : "Invalid password",
         );
       }
     },
