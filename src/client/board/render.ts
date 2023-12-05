@@ -8,23 +8,17 @@ const TILE_SIZE = 32;
 
 const CURSOR_SMOOTHING = 0.5;
 
-let drawBoardSize: Vector;
+export function getBoardSize(game: GameState): Vector {
+  return new Vector(game.board.width, game.board.height).multiply(TILE_SIZE);
+}
 
-export function updateBoardSize(
-  canvas: HTMLCanvasElement,
-  skin: Skin,
-  game: GameState,
-) {
-  drawBoardSize = new Vector(game.board.width, game.board.height).multiply(
-    TILE_SIZE,
+export function getCanvasSize(skin: Skin, boardSize: Vector): Vector {
+  return new Vector(
+    boardSize.x +
+      (skin.loaded ? (skin.frame.left + skin.frame.right) * GUI_SCALE : 0),
+    boardSize.y +
+      (skin.loaded ? (skin.frame.top + skin.frame.bottom) * GUI_SCALE : 0),
   );
-
-  canvas.width =
-    drawBoardSize.x +
-    (skin.loaded ? (skin.frame.left + skin.frame.right) * GUI_SCALE : 0);
-  canvas.height =
-    drawBoardSize.y +
-    (skin.loaded ? (skin.frame.top + skin.frame.bottom) * GUI_SCALE : 0);
 }
 
 const cursor = new Image();
@@ -84,11 +78,14 @@ function drawCounter(
   }
 }
 
-export function getResetPosSize(skin: Skin): [Vector, Vector] {
+export function getResetPosSize(
+  skin: Skin,
+  boardSize: Vector,
+): [Vector, Vector] {
   return [
     new Vector(
       skin.frame.left * GUI_SCALE +
-        (drawBoardSize.x - skin.button.tileSize.x * GUI_SCALE) / 2,
+        (boardSize.x - skin.button.tileSize.x * GUI_SCALE) / 2,
       30,
     ),
     skin.button.tileSize.times(GUI_SCALE),
@@ -100,8 +97,9 @@ export function draw(
   ctx: CanvasRenderingContext2D,
   skin: Skin,
   game: GameState,
+  drawSize: Vector,
 ) {
-  if (!drawBoardSize || !skin.loaded || !game.init) return;
+  if (!drawSize || !skin.loaded || !game.init) return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -129,7 +127,7 @@ export function draw(
       : game.loserId != null
       ? new Vector(1, 0)
       : new Vector(0, 0),
-    ...getResetPosSize(skin),
+    ...getResetPosSize(skin, drawSize),
   );
 
   drawCounter(
@@ -203,12 +201,19 @@ export function draw(
       skin.tiles.drawTile(ctx, new Vector(n + 5, 0), tilePos, tileSize);
     }
   });
+}
 
-  // Cursors
+export function drawCursors(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  game: GameState,
+) {
   ctx.textAlign = "center";
   ctx.textBaseline = "hanging";
   ctx.font = "normal 13px monospace";
   ctx.imageSmoothingEnabled = true;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const MARGIN = 3;
   Object.values(game.users)

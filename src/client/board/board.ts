@@ -9,7 +9,7 @@ import { Matrix } from "../../util/Matrix";
 import { Color } from "../../util/Color";
 import { FLAG, GameState, State, WALL } from "../../model/GameState";
 import { throttled } from "../../util/util";
-import { getResetPosSize, getTilePos, updateBoardSize } from "./render";
+import { getResetPosSize, getTilePos } from "./render";
 import { Skin } from "./Skin";
 import React from "react";
 
@@ -72,8 +72,9 @@ export function onActionUp(
   game: GameState,
   skin: Skin,
   action: Action,
+  boardSize: Vector,
 ) {
-  const [resetPos, resetSize] = getResetPosSize(skin);
+  const [resetPos, resetSize] = getResetPosSize(skin, boardSize);
 
   game.holding = false;
 
@@ -211,7 +212,6 @@ export async function messageListener(
         game.flags.height,
         msg.tiles as State[],
       );
-      if (canvas) updateBoardSize(canvas, skin, game);
       break;
 
     case MessageType.FLAG:
