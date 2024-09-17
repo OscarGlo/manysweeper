@@ -186,7 +186,7 @@ export function GameBoard(): React.ReactElement {
         }}
         sx={{
           position: "absolute",
-          cursor: "url(img/cursor.png), default",
+          cursor: "url(/img/cursor.png), default",
           outline: "none",
           top: 0,
           left: 0,
