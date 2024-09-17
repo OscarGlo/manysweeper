@@ -107,7 +107,11 @@ wss.on("connection", (ws, req) => {
   ]);
   // TODO Merge INIT and BOARD
   send([MessageType.BOARD, game.board.arr]);
-  Object.values(game.users).forEach((user) => send(userMessageData(user)));
+  Object.values(game.users).forEach((user) => {
+    send(userMessageData(user));
+    if (user.cursorPos)
+      send([MessageType.CURSOR, user.cursorPos.x, user.cursorPos.y, user.id]);
+  });
 
   if (game.loserId != null)
     send([MessageType.LOSE, game.loserId, game.mines.arr]);
@@ -257,6 +261,7 @@ wss.on("connection", (ws, req) => {
         broadcast([MessageType.RESET, game.mineCount]);
       }
     } else if (msg.type === MessageType.CURSOR) {
+      game.users[user.id].cursorPos = new Vector(x, y);
       broadcast([MessageType.CURSOR, x, y, user.id], ws);
     }
   });
