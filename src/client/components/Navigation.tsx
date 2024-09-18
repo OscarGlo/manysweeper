@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { AppBar, Avatar, Toolbar, Typography } from "@mui/material";
+import { AppBar, Toolbar, Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 import { useToggle } from "../hooks/useToggle";
@@ -7,6 +7,7 @@ import { NavigationButton } from "./NavigationButton";
 import { LoginPopover } from "./LoginPopover";
 import { OptionsPopover } from "./OptionsPopover";
 import { CookiesContext } from "../contexts/Cookies";
+import { UserAvatar } from "./UserAvatar";
 
 export function Navigation(): React.ReactElement {
   const { cookies } = useContext(CookiesContext);
@@ -31,13 +32,12 @@ export function Navigation(): React.ReactElement {
         <NavigationButton
           icon={(props) =>
             cookies.username ? (
-              <Avatar
+              <UserAvatar
+                color={cookies.color}
+                username={cookies.username}
                 {...props}
-                sx={{ bgcolor: cookies.color, marginRight: 1 }}
-              >
-                {cookies.username?.split(" ")[0]?.[0]}
-                {cookies.username?.split(" ")[1]?.[0]}
-              </Avatar>
+                sx={{ marginRight: 1 }}
+              />
             ) : (
               <PersonIcon {...props} />
             )

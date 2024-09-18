@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,7 +13,6 @@ import {
   getCanvasSize,
   drawCursors,
 } from "../board/render";
-import { GameState } from "../../model/GameState";
 import {
   Action,
   messageListener,
@@ -27,6 +25,7 @@ import { Box, styled } from "@mui/material";
 import { WebSocketContext } from "../contexts/WebSocket";
 import { Vector } from "../../util/Vector";
 import { MessageType } from "../../model/messages";
+import { GameContext } from "../contexts/Game";
 
 const Canvas = styled("canvas")({});
 
@@ -64,11 +63,7 @@ export function GameBoard(): React.ReactElement {
 
   const container = useRef<HTMLDivElement>();
 
-  const game = useMemo(() => {
-    const state = new GameState(1, 1, 0);
-    state.init = false;
-    return state;
-  }, []);
+  const { game } = useContext(GameContext);
   const { skin } = useContext(SkinContext);
 
   function updateCanvasSize(size: Vector) {
