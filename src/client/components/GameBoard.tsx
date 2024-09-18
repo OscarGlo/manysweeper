@@ -136,12 +136,16 @@ export function GameBoard(): React.ReactElement {
 
   requestAnimationFrame(update);
 
+  const canvasStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    imageRendering: "pixelated",
+  };
+
   return (
     <Box position="relative" display="inline-block" ref={container}>
-      <Canvas
-        ref={getLayer(0)}
-        sx={{ position: "absolute", top: 0, left: 0 }}
-      />
+      <Canvas ref={getLayer(0)} sx={canvasStyle} />
       <Canvas
         ref={getLayer(1)}
         onContextMenu={(evt) => evt.preventDefault()}
@@ -185,11 +189,9 @@ export function GameBoard(): React.ReactElement {
             );
         }}
         sx={{
-          position: "absolute",
+          ...canvasStyle,
           cursor: "url(/img/cursor.png), default",
           outline: "none",
-          top: 0,
-          left: 0,
         }}
       />
     </Box>
