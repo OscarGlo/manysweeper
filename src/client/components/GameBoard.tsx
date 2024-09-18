@@ -140,12 +140,14 @@ export function GameBoard(): React.ReactElement {
     position: "absolute",
     top: 0,
     left: 0,
-    imageRendering: "pixelated",
   };
 
   return (
     <Box position="relative" display="inline-block" ref={container}>
-      <Canvas ref={getLayer(0)} sx={canvasStyle} />
+      <Canvas
+        ref={getLayer(0)}
+        sx={{ ...canvasStyle, imageRendering: "pixelated" }}
+      />
       <Canvas
         ref={getLayer(1)}
         onContextMenu={(evt) => evt.preventDefault()}
