@@ -13,7 +13,7 @@ export function Room() {
   return (
     <WebSocketProvider query={{ id, password }}>
       <GameProvider>
-        <Stack direction="row" sx={{ width: "100%" }}>
+        <Stack direction="row" sx={{ width: "100%", height: "100%" }}>
           <UserList />
           <Box flex={1} overflow="auto" textAlign="center" paddingTop={6}>
             <GameBoard />

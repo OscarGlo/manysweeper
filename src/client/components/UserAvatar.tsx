@@ -11,9 +11,9 @@ export function UserAvatar({
 }: UserAvatarProps): React.ReactElement {
   const parts = username?.split(/\s+/);
   return (
-    <Avatar {...props}>
-      {parts[0]?.[0]}
-      {parts[1]?.[0]}
+    <Avatar {...props} sx={{ backgroundColor: props.color, ...props.sx }}>
+      {parts[0]?.[0]?.toUpperCase()}
+      {parts[1]?.[0]?.toUpperCase()}
     </Avatar>
   );
 }

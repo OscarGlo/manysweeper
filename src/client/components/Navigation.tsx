@@ -19,7 +19,7 @@ export function Navigation(): React.ReactElement {
   const [loginOpen, toggleLoginOpen] = useToggle();
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ zIndex: 100 }}>
       <Toolbar>
         <Typography
           onClick={() => location.replace("/")}

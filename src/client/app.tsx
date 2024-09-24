@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Navigation } from "./components/Navigation";
 import { CookiesProvider } from "./contexts/Cookies";
 import { AppThemeProvider } from "./contexts/AppTheme";
-import { Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { SkinProvider } from "./contexts/Skin";
 import { RoomList } from "./components/RoomList";
@@ -29,7 +29,9 @@ function App(): React.ReactElement {
           <PasswordProvider>
             <Stack direction="column" height="100vh">
               <Navigation />
-              <RouterProvider router={router} />
+              <Box flex={1}>
+                <RouterProvider router={router} />
+              </Box>
             </Stack>
           </PasswordProvider>
         </SkinProvider>
