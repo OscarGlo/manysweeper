@@ -90,7 +90,7 @@ export function RoomList(): React.ReactElement {
   const [alertOpen, setAlertOpen] = useState(params.size > 0);
 
   return (
-    <Center>
+    <Center height="100%">
       <Paper>
         <DataGrid
           columns={columns}
