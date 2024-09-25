@@ -1,12 +1,24 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { UserAvatar } from "./UserAvatar";
-import { useUpdateInterval } from "../hooks/useUpdateInterval";
+import { useInterval } from "../hooks/useInterval";
 
 export function UserList(): React.ReactElement {
   const { game } = useContext(GameContext);
-  const time = useUpdateInterval(1000);
+
+  const [users, setUsers] = useState({ ...game.users });
+  const [init, setInit] = useState(false);
+  useInterval(
+    () => {
+      if (Object.values(game.users).length !== Object.values(users).length)
+        setUsers({ ...game.users });
+
+      if (game.init && !init) setInit(true);
+    },
+    100,
+    [game, users, setUsers],
+  );
 
   return (
     <Paper
@@ -26,8 +38,8 @@ export function UserList(): React.ReactElement {
           <CircularProgress size="32px" />
         </Box>
       )}
-      <Stack key={time}>
-        {Object.values(game.users).map((user, i) => (
+      <Stack>
+        {Object.values(users).map((user, i) => (
           <Stack
             direction="row"
             alignItems="center"
