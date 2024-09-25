@@ -23,11 +23,11 @@ export function UserList(): React.ReactElement {
   return (
     <Paper
       sx={{
-        width: "200px",
-        height: "100%",
+        height: "300px",
         overflow: "auto",
-        resize: "horizontal",
+        resize: "vertical",
         borderRadius: 0,
+        zIndex: 10,
       }}
     >
       <Typography variant="h6" sx={{ marginTop: 1, marginLeft: 2 }}>

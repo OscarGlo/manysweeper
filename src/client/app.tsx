@@ -29,7 +29,7 @@ function App(): React.ReactElement {
           <PasswordProvider>
             <Stack direction="column" height="100vh">
               <Navigation />
-              <Box flex={1}>
+              <Box flex={1} overflow="hidden">
                 <RouterProvider router={router} />
               </Box>
             </Stack>

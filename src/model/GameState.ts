@@ -13,6 +13,11 @@ export type State = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export type Border = Vector[];
 
+export interface ChatMessage {
+  user: UserConnection;
+  message: string;
+}
+
 export class GameState {
   static MIN_WIDTH = 1;
   static MAX_WIDTH = 50;
@@ -36,6 +41,7 @@ export class GameState {
   loserId?: number;
   users: Record<string, UserConnection>;
   userIds: IdGen;
+  chat: ChatMessage[];
 
   holding?: boolean;
   clickedTile?: Vector;
@@ -58,6 +64,7 @@ export class GameState {
     this.timer = new Timer({ max: 999 });
     this.users = {};
     this.userIds = new IdGen({ min: 1, max: 255 });
+    this.chat = [];
 
     this.reset();
     this.init = true;

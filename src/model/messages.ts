@@ -14,6 +14,7 @@ export enum MessageType {
   WIN,
   LOSE,
   RESET,
+  CHAT,
 }
 
 export type MessageSpecValue = number | [number] | "";
@@ -61,6 +62,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   [MessageType.WIN]: {},
   [MessageType.LOSE]: { id: 8, mines: [1] },
   [MessageType.RESET]: { mineCount: 10 },
+  [MessageType.CHAT]: { id: 8, message: "" },
 };
 
 const typeBits = Math.ceil(Math.log2(Object.values(MessageSpecs).length));
@@ -84,7 +86,7 @@ export function serializeMessage(data: MessageValue[]): Uint8Array {
       const dataLen = data[i + 1] ? (data[i + 1] as number[]).length : 0;
       for (let j = 0; j < dataLen; j++) sizes.push(elemLen);
     } else {
-      sizes.push(spec);
+      sizes.push(spec as number);
     }
   }
 
@@ -125,8 +127,8 @@ export function deserializeMessage(data: Uint8Array): MessageData {
       typeof spec === "string"
         ? String.fromCharCode(...arr)
         : Array.isArray(spec)
-        ? arr
-        : arr.shift(),
+          ? arr
+          : arr.shift(),
     );
   }
 

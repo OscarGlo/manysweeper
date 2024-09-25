@@ -263,6 +263,8 @@ wss.on("connection", (ws, req) => {
     } else if (msg.type === MessageType.CURSOR) {
       game.users[user.id].cursorPos = new Vector(x, y);
       broadcast([MessageType.CURSOR, x, y, user.id], ws);
+    } else if (msg.type === MessageType.CHAT) {
+      broadcast([MessageType.CHAT, user.id, msg.message]);
     }
   });
 

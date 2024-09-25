@@ -12,7 +12,6 @@ import { throttled } from "../../util/util";
 import { getResetPosSize, getTilePos } from "./render";
 import { Skin } from "./Skin";
 import React from "react";
-
 function send(ws: WebSocket, data: MessageValue[]) {
   if (ws.readyState === WebSocket.OPEN) ws.send(serializeMessage(data));
 }
@@ -118,8 +117,8 @@ export function onActionUp(
         action === Action.BREAK
           ? MessageType.TILE
           : action === Action.CHORD
-          ? MessageType.CHORD
-          : MessageType.FLAG,
+            ? MessageType.CHORD
+            : MessageType.FLAG,
         tilePos.x,
         tilePos.y,
       ]);
@@ -244,5 +243,12 @@ export async function messageListener(
       game.loserId = undefined;
       game.win = false;
       break;
+
+    case MessageType.CHAT: {
+      const user = game.users[msg.id as number];
+      game.chat.push({ user, message: msg.message as string });
+      console.log(game.chat);
+      break;
+    }
   }
 }
