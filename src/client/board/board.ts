@@ -247,7 +247,6 @@ export async function messageListener(
     case MessageType.CHAT: {
       const user = game.users[msg.id as number];
       game.chat.push({ user, message: msg.message as string });
-      console.log(game.chat);
       break;
     }
   }
