@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Paper, Stack, TextField, Typography } from "@mui/material";
+import { Box, Chip, Paper, Stack, TextField, Typography } from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { WebSocketContext } from "../contexts/WebSocket";
 import { MessageType, serializeMessage } from "../../model/messages";
@@ -19,30 +19,41 @@ export function ChatBox(): React.ReactElement {
   const [chat, setChat] = useState([...game.chat]);
 
   const scrollerRef = useRef<HTMLDivElement>();
+  const isChatScrolled = useCallback(
+    () =>
+      scrollerRef?.current &&
+      scrollerRef.current.scrollTop ===
+        scrollerRef.current.scrollHeight - scrollerRef.current.offsetHeight,
+    [scrollerRef],
+  );
+  const scrollChat = () => {
+    scrollerRef.current.scrollTop =
+      scrollerRef.current.scrollHeight - scrollerRef.current.offsetHeight;
+  };
+
   const [shouldScroll, setShouldScroll] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
   useInterval(
     () => {
       if (game.chat.length !== chat.length) {
         setChat([...game.chat]);
 
-        if (
-          scrollerRef?.current &&
-          scrollerRef.current.scrollTop ===
-            scrollerRef.current.scrollHeight - scrollerRef.current.offsetHeight
-        )
-          setShouldScroll(true);
+        if (isChatScrolled()) setShouldScroll(true);
+        else setShowNew(true);
       }
+
+      if (isChatScrolled() && showNew) setShowNew(false);
     },
     100,
-    [game, chat, setChat, scrollerRef, setShouldScroll],
+    [game, chat, setChat, isChatScrolled, setShouldScroll, showNew, setShowNew],
   );
 
+  // Scroll to bottom of chat scroller on rerender
   useLayoutEffect(() => {
     if (shouldScroll && scrollerRef.current) {
       setShouldScroll(false);
-      scrollerRef.current.scrollTop =
-        scrollerRef.current.scrollHeight - scrollerRef.current.offsetHeight;
+      scrollChat();
     }
   }, [shouldScroll, setShouldScroll, scrollerRef]);
 
@@ -50,7 +61,12 @@ export function ChatBox(): React.ReactElement {
     (evt) => {
       if (evt.key === "Enter") {
         const input = evt.target as HTMLInputElement;
-        websocket.send(serializeMessage([MessageType.CHAT, 0, input.value]));
+        if (input.value.match(/\S/)) {
+          websocket.send(
+            serializeMessage([MessageType.CHAT, 0, input.value.trim()]),
+          );
+          scrollChat();
+        }
         input.value = "";
       }
     },
@@ -60,20 +76,39 @@ export function ChatBox(): React.ReactElement {
   return (
     <Paper sx={{ borderRadius: 0, flex: 1, minHeight: 0 }}>
       <Stack height="100%">
-        <Stack flex={1} padding={1} overflow="auto" ref={scrollerRef}>
-          {chat.map((msg, i) => (
-            <Typography key={msg.user.username + msg.message + i}>
+        <Box flex={1} height="100%" overflow="hidden" position="relative">
+          <Stack padding={1} height="100%" overflow="auto" ref={scrollerRef}>
+            {chat.map((msg, i) => (
               <Typography
-                component="span"
-                color={msg.user.color.hex}
-                fontWeight="bold"
+                key={msg.user.username + msg.message + i}
+                textAlign="left"
               >
-                {msg.user.username}
+                <Typography
+                  component="span"
+                  color={msg.user.color.hex}
+                  fontWeight="bold"
+                >
+                  {msg.user.username}
+                </Typography>
+                : {msg.message}
               </Typography>
-              : {msg.message}
-            </Typography>
-          ))}
-        </Stack>
+            ))}
+          </Stack>
+
+          {showNew && (
+            <Chip
+              label="New messages"
+              sx={{
+                position: "absolute",
+                width: "120px",
+                left: 0,
+                right: 0,
+                bottom: "8px",
+                marginX: "auto",
+              }}
+            />
+          )}
+        </Box>
 
         <TextField
           placeholder="Send message..."
