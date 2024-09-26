@@ -32,7 +32,7 @@ export const rooms: Record<number, Room> = {
 function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
     if (ws["roomId"] === roomId && ws !== from)
-      ws.send(serializeMessage(message as MessageValue[]), {
+      ws.send(serializeMessage(message), {
         binary: true,
       });
   });
@@ -57,6 +57,9 @@ function userMessageData(user: UserConnection) {
   ];
 }
 
+const FLAG_DELAY = 300;
+const flagDelay = {};
+
 wss.on("connection", (ws, req) => {
   function send(message: MessageValue[]) {
     ws.send(serializeMessage(message), { binary: true });
@@ -65,11 +68,11 @@ wss.on("connection", (ws, req) => {
   const query = req.url.split("?", 2)[1];
   const { id: idStr, password } = qs.parse(query) as unknown as WebSocketQuery;
   const id = parseInt(idStr);
-  ws["roomId"] = id;
 
   if (rooms[id] == null) return send([MessageType.ERROR, ErrorType.NOT_FOUND]);
 
   const room = rooms[id];
+  ws["roomId"] = id;
 
   if (
     room.passwordHash &&
@@ -250,11 +253,19 @@ wss.on("connection", (ws, req) => {
       game.timer.start();
 
       // Toggle flag
-      if (state > 8) {
+      const flagId = roomId + pos.toString();
+      if (
+        state > 8 &&
+        (user.id === game.flags.get(pos) || flagDelay[flagId] == null)
+      ) {
         const flag = state === WALL;
         game.board.set(pos, flag ? FLAG : WALL);
         if (flag) game.flags.set(pos, user.id);
         broadcast(id, [MessageType.FLAG, x, y, user.id]);
+
+        // Prevent other users toggling flag
+        flagDelay[flagId] = true;
+        setTimeout(() => delete flagDelay[flagId], FLAG_DELAY);
       }
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
