@@ -113,6 +113,7 @@ export function ChatBox(): React.ReactElement {
         <TextField
           placeholder="Send message..."
           variant="standard"
+          inputProps={{ maxLength: 256 }}
           sx={{ width: "100%", padding: 1 }}
           onKeyDown={onKeyDown}
         />
