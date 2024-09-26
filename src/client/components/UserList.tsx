@@ -43,7 +43,7 @@ export function UserList(): React.ReactElement {
           <Stack
             direction="row"
             alignItems="center"
-            sx={{ gap: 1, margin: 1, marginLeft: 2 }}
+            sx={{ gap: 1, marginTop: 1, marginLeft: 2 }}
             key={user.username + i}
           >
             <UserAvatar color={user.color.hex} username={user.username} />
