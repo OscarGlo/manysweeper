@@ -29,9 +29,9 @@ export const rooms: Record<number, Room> = {
   0: new Room({ name: "Persistent expert", width: 30, height: 16, mines: 99 }),
 };
 
-function broadcast(message: MessageValue[], from?: WebSocket) {
+function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
-    if (ws !== from)
+    if (ws["roomId"] === roomId && ws !== from)
       ws.send(serializeMessage(message as MessageValue[]), {
         binary: true,
       });
@@ -41,7 +41,7 @@ function broadcast(message: MessageValue[], from?: WebSocket) {
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
   rooms[id].game.loserId = loserId;
-  broadcast([MessageType.LOSE, loserId, rooms[id].game.mines.arr]);
+  broadcast(id, [MessageType.LOSE, loserId, rooms[id].game.mines.arr]);
 }
 
 const INVALID_ID = 0;
@@ -65,6 +65,7 @@ wss.on("connection", (ws, req) => {
   const query = req.url.split("?", 2)[1];
   const { id: idStr, password } = qs.parse(query) as unknown as WebSocketQuery;
   const id = parseInt(idStr);
+  ws["roomId"] = id;
 
   if (rooms[id] == null) return send([MessageType.ERROR, ErrorType.NOT_FOUND]);
 
@@ -118,7 +119,7 @@ wss.on("connection", (ws, req) => {
   else if (game.win) send([MessageType.WIN]);
 
   game.users[user.id] = user;
-  broadcast(userMessageData(user));
+  broadcast(id, userMessageData(user));
 
   ws.on("message", (data) => {
     const msg = formatMessageData(
@@ -144,7 +145,7 @@ wss.on("connection", (ws, req) => {
 
         if (game.mines.get(pos)) {
           game.board.set(pos, 0);
-          broadcast([MessageType.TILE, x, y]);
+          broadcast(id, [MessageType.TILE, x, y]);
           return fail(id, user.id);
         }
       }
@@ -162,13 +163,13 @@ wss.on("connection", (ws, req) => {
         let failed: boolean;
         [failed, borders] = game.chord(pos);
         if (failed) {
-          broadcast([MessageType.CHORD, x, y]);
+          broadcast(id, [MessageType.CHORD, x, y]);
           return fail(id, user.id);
         }
       }
 
       if (isTile) {
-        broadcast([MessageType.TILE, x, y, game.board.get(pos)]);
+        broadcast(id, [MessageType.TILE, x, y, game.board.get(pos)]);
       } else {
         if (borders.length === 0) return;
 
@@ -198,7 +199,7 @@ wss.on("connection", (ws, req) => {
             },
             true,
           );
-          broadcast([MessageType.CHORD, cx, cy, tiles]);
+          broadcast(id, [MessageType.CHORD, cx, cy, tiles]);
         } else {
           const tiles = [];
           game.board.forEachNeighbor(
@@ -208,7 +209,7 @@ wss.on("connection", (ws, req) => {
             },
             true,
           );
-          broadcast([MessageType.CHORD, x, y, tiles]);
+          broadcast(id, [MessageType.CHORD, x, y, tiles]);
 
           const tileBorders = borders.filter(
             (b) =>
@@ -217,12 +218,13 @@ wss.on("connection", (ws, req) => {
           );
           for (let i = 0; i < tileBorders.length; i++) {
             const { x, y } = tileBorders[i][0];
-            broadcast([MessageType.TILE, x, y, game.board.get(pos)]);
+            broadcast(id, [MessageType.TILE, x, y, game.board.get(pos)]);
           }
 
           const holeBorders = borders.filter((b) => b.length > 1);
           for (let i = 0; i < holeBorders.length; i++) {
             broadcast(
+              id,
               game.getHoleMessage(
                 holeBorders[i],
                 pos,
@@ -232,7 +234,7 @@ wss.on("connection", (ws, req) => {
           }
           // Send dummy HOLE message to open borders if no previous hole message was sent
           if (holeBorders.length === 0) {
-            broadcast([MessageType.HOLE, x, y, x, y, true, []]);
+            broadcast(id, [MessageType.HOLE, x, y, x, y, true, []]);
           }
         }
       }
@@ -240,7 +242,7 @@ wss.on("connection", (ws, req) => {
       game.win = game.checkWin();
       if (game.win) {
         game.timer.stop();
-        broadcast([MessageType.WIN]);
+        broadcast(id, [MessageType.WIN]);
       }
     } else if (msg.type === MessageType.FLAG) {
       if (game.loserId != null || game.win) return;
@@ -252,19 +254,19 @@ wss.on("connection", (ws, req) => {
         const flag = state === WALL;
         game.board.set(pos, flag ? FLAG : WALL);
         if (flag) game.flags.set(pos, user.id);
-        broadcast([MessageType.FLAG, x, y, user.id]);
+        broadcast(id, [MessageType.FLAG, x, y, user.id]);
       }
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
         game.reset();
         game.generate();
-        broadcast([MessageType.RESET, game.mineCount]);
+        broadcast(id, [MessageType.RESET, game.mineCount]);
       }
     } else if (msg.type === MessageType.CURSOR) {
       game.users[user.id].cursorPos = new Vector(x, y);
-      broadcast([MessageType.CURSOR, x, y, user.id], ws);
+      broadcast(id, [MessageType.CURSOR, x, y, user.id], ws);
     } else if (msg.type === MessageType.CHAT) {
-      broadcast([MessageType.CHAT, user.id, msg.message]);
+      broadcast(id, [MessageType.CHAT, user.id, msg.message]);
     }
   });
 
@@ -281,6 +283,6 @@ wss.on("connection", (ws, req) => {
       if (id === user.id) game.flags.set(p, INVALID_ID);
     });
 
-    broadcast([MessageType.DISCONNECT, user.id]);
+    broadcast(id, [MessageType.DISCONNECT, user.id]);
   });
 });
