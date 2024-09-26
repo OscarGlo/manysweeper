@@ -1,0 +1,14 @@
+{
+  "counter": {
+    "top": 1,
+    "bottom": 1,
+    "left": 1,
+    "right": 1
+  },
+  "frame": {
+    "top": 55,
+    "bottom": 8,
+    "left": 12,
+    "right": 8
+  }
+}
