@@ -77,7 +77,15 @@ export function ChatBox(): React.ReactElement {
     <Paper sx={{ borderRadius: 0, flex: 1, minHeight: 0 }}>
       <Stack height="100%">
         <Box flex={1} height="100%" overflow="hidden" position="relative">
-          <Stack padding={1} height="100%" overflow="auto" ref={scrollerRef}>
+          <Stack
+            padding={1}
+            height="100%"
+            ref={scrollerRef}
+            sx={{
+              wordBreak: "break-word",
+              overflowX: "hidden",
+            }}
+          >
             {chat.map((msg, i) => (
               <Typography
                 key={msg.user.username + msg.message + i}
