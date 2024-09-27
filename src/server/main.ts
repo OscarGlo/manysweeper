@@ -21,6 +21,8 @@ import qs from "qs";
 import { WebSocketQuery } from "../model/WebSocketQuery";
 import bcrypt from "bcryptjs";
 
+import * as colors from "../../public/colors.json";
+
 const wss = new WebSocketServer({ server });
 
 export const roomId = new IdGen({ min: 1 });
@@ -93,10 +95,13 @@ wss.on("connection", (ws, req) => {
     },
   });
 
+  const names = Object.keys(colors);
+  const name = names[Math.floor(Math.random() * names.length)];
+
   const user: UserConnection = {
     id: game.userIds.get(),
-    username: cookies.username?.substring(0, 24) ?? "Guest",
-    color: cookies.color ? Color.hex(cookies.color) : Color.RED,
+    username: cookies.username?.substring(0, 24) ?? `${name} Guest`,
+    color: Color.hex(cookies.color ?? colors[name]),
   };
 
   send([
