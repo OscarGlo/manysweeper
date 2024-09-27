@@ -1,5 +1,12 @@
 import React, { useContext, useState } from "react";
-import { AppBar, Toolbar, Typography } from "@mui/material";
+import {
+  AppBar,
+  Stack,
+  SvgIcon,
+  Toolbar,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 import { useToggle } from "../hooks/useToggle";
@@ -8,6 +15,7 @@ import { LoginPopover } from "./LoginPopover";
 import { OptionsPopover } from "./OptionsPopover";
 import { CookiesContext } from "../contexts/Cookies";
 import { UserAvatar } from "./UserAvatar";
+import { DiscordIcon } from "./DiscordIcon";
 
 export function Navigation(): React.ReactElement {
   const { cookies } = useContext(CookiesContext);
@@ -18,17 +26,25 @@ export function Navigation(): React.ReactElement {
   const [optionsOpen, toggleOptionsOpen] = useToggle();
   const [loginOpen, toggleLoginOpen] = useToggle();
 
+  const theme = useTheme();
+
   return (
     <AppBar position="static" sx={{ zIndex: 100 }}>
       <Toolbar>
-        <Typography
-          variant="h5"
-          component="a"
-          href="/"
-          sx={{ color: "inherit", textDecoration: "none" }}
-        >
-          ManySweeper
-        </Typography>
+        <Stack direction="row" alignItems="center" gap={2}>
+          <Typography
+            variant="h5"
+            component="a"
+            href="/"
+            sx={{ color: "inherit", textDecoration: "none" }}
+          >
+            ManySweeper
+          </Typography>
+
+          <SvgIcon component="a" href="https://discord.gg/TnrBrkVYFq">
+            <DiscordIcon fill={theme.palette.text.primary} />
+          </SvgIcon>
+        </Stack>
 
         <NavigationButton
           icon={(props) =>
