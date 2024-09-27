@@ -41,7 +41,11 @@ export function Navigation(): React.ReactElement {
             ManySweeper
           </Typography>
 
-          <SvgIcon component="a" href="https://discord.gg/TnrBrkVYFq">
+          <SvgIcon
+            component="a"
+            href="https://discord.gg/TnrBrkVYFq"
+            target="_blank"
+          >
             <DiscordIcon fill={theme.palette.text.primary} />
           </SvgIcon>
         </Stack>
