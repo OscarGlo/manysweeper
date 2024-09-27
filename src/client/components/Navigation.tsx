@@ -22,9 +22,10 @@ export function Navigation(): React.ReactElement {
     <AppBar position="static" sx={{ zIndex: 100 }}>
       <Toolbar>
         <Typography
-          onClick={() => location.replace("/")}
           variant="h5"
-          sx={{ cursor: "pointer" }}
+          component="a"
+          href="/"
+          sx={{ color: "inherit", textDecoration: "none" }}
         >
           ManySweeper
         </Typography>
