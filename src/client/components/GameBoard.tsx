@@ -77,11 +77,15 @@ export function GameBoard(): React.ReactElement {
 
   const boardSize = useRef<Vector>();
 
+  const _draw = () =>
+    draw(layers[0], contexts[0], skin, game, boardSize.current);
+
   useEffect(() => {
     const onLoad = () => {
       const size = getBoardSize(game);
       boardSize.current = size;
       updateCanvasSize(getCanvasSize(skin, size));
+      _draw();
     };
     skin.on("load", onLoad);
 
@@ -98,8 +102,7 @@ export function GameBoard(): React.ReactElement {
         updateCanvasSize(getCanvasSize(skin, size));
       }
 
-      if (msg.type !== MessageType.CURSOR && contexts[0])
-        draw(layers[0], contexts[0], skin, game, boardSize.current);
+      if (msg.type !== MessageType.CURSOR && contexts[0]) _draw();
     });
   }, [messageListener, layers[0], skin, game]);
 
@@ -121,7 +124,7 @@ export function GameBoard(): React.ReactElement {
       clicked.current = game.clickedTile;
       holding.current = game.holding;
       time.current = game.timer.time;
-      draw(layers[0], contexts[0], skin, game, boardSize.current);
+      _draw();
     }
 
     const frameId = requestAnimationFrame(update);

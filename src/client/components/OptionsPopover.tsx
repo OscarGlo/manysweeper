@@ -29,7 +29,9 @@ export function OptionsPopover(props: PopoverProps): React.ReactElement {
         <CookieInput
           cookieName="skin"
           defaultValue="classic"
-          onChange={(name: string) => skin.load(name)}
+          onChange={(name: string) => {
+            if (skin.name !== name) skin.load(name);
+          }}
           render={({ value, onChange }) => (
             <FormControl>
               <InputLabel>Skin</InputLabel>
