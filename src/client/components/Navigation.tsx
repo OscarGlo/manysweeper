@@ -1,12 +1,5 @@
 import React, { useContext, useState } from "react";
-import {
-  AppBar,
-  Stack,
-  SvgIcon,
-  Toolbar,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { AppBar, Stack, SvgIcon, Toolbar, Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PersonIcon from "@mui/icons-material/Person";
 import { useToggle } from "../hooks/useToggle";
@@ -26,8 +19,6 @@ export function Navigation(): React.ReactElement {
   const [optionsOpen, toggleOptionsOpen] = useToggle();
   const [loginOpen, toggleLoginOpen] = useToggle();
 
-  const theme = useTheme();
-
   return (
     <AppBar position="static" sx={{ zIndex: 100 }}>
       <Toolbar>
@@ -46,7 +37,7 @@ export function Navigation(): React.ReactElement {
             href="https://discord.gg/TnrBrkVYFq"
             target="_blank"
           >
-            <DiscordIcon fill={theme.palette.text.primary} />
+            <DiscordIcon fill="white" />
           </SvgIcon>
         </Stack>
 
