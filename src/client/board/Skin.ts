@@ -50,7 +50,7 @@ export class Skin extends EventEmitter {
     this.minesPos = new Position(config.mines);
     this.timerPos = new Position(config.timer);
     this.buttonPos = new Position(config.button);
-    this.buttonScale = config.button.scale;
+    this.buttonScale = config.button.scale ?? 1;
     this.counter = new NineSliceTexture(
       `/img/skins/${name}/counter.png`,
       config.counter.top,
