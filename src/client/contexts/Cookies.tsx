@@ -24,7 +24,7 @@ export function CookiesProvider({
         path: "/",
       });
       cookies[key] = value;
-      setCookies(cookies);
+      setCookies({ ...cookies });
     },
     [cookies, setCookies],
   );

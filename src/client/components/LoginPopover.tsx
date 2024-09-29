@@ -10,11 +10,9 @@ import {
 import { ColorInput } from "./ColorInput";
 import { CookieInput } from "./CookieInput";
 import { CookiesContext } from "../contexts/Cookies";
-import { WebSocketContext } from "../contexts/WebSocket";
 
 export function LoginPopover(props: PopoverProps): React.ReactElement {
   const { setCookie } = useContext(CookiesContext);
-  const { refresh } = useContext(WebSocketContext);
 
   const [username, setUsername] = useState("");
   const [color, setColor] = useState("");
@@ -22,9 +20,8 @@ export function LoginPopover(props: PopoverProps): React.ReactElement {
   const onSubmit = useCallback(() => {
     setCookie("username", username);
     setCookie("color", color);
-    refresh();
     props.onClose({}, "escapeKeyDown");
-  }, [setCookie, username, color, refresh, props.onClose]);
+  }, [setCookie, username, color, props.onClose]);
 
   return (
     <Popover {...props} keepMounted>

@@ -3,6 +3,7 @@ import { Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { UserAvatar } from "./UserAvatar";
 import { useInterval } from "../hooks/useInterval";
+import { arraysEqual } from "../util/arraysEqual";
 
 export function UserList(): React.ReactElement {
   const { game } = useContext(GameContext);
@@ -11,7 +12,13 @@ export function UserList(): React.ReactElement {
   const [init, setInit] = useState(false);
   useInterval(
     () => {
-      if (Object.values(game.users).length !== Object.values(users).length)
+      if (
+        !arraysEqual(
+          (u) => u.username + " " + u.color.hex,
+          Object.values(game.users),
+          Object.values(users),
+        )
+      )
         setUsers({ ...game.users });
 
       if (game.init && !init) setInit(true);
@@ -33,33 +40,34 @@ export function UserList(): React.ReactElement {
       <Typography variant="h6" sx={{ marginTop: 1, marginLeft: 2 }}>
         Users
       </Typography>
-      {game.init ? null : (
+      {init ? (
+        <Stack>
+          {Object.values(users).map((user, i) => (
+            <Stack
+              direction="row"
+              alignItems="center"
+              sx={{ gap: 1, marginTop: 1, marginLeft: 2 }}
+              key={user.username + i}
+            >
+              <UserAvatar color={user.color.hex} username={user.username} />
+              <Typography
+                sx={{
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {user.username}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      ) : (
         <Box width="100%" textAlign="center" sx={{ marginTop: 1 }}>
           <CircularProgress size="32px" />
         </Box>
       )}
-      <Stack>
-        {Object.values(users).map((user, i) => (
-          <Stack
-            direction="row"
-            alignItems="center"
-            sx={{ gap: 1, marginTop: 1, marginLeft: 2 }}
-            key={user.username + i}
-          >
-            <UserAvatar color={user.color.hex} username={user.username} />
-            <Typography
-              sx={{
-                minWidth: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {user.username}
-            </Typography>
-          </Stack>
-        ))}
-      </Stack>
     </Paper>
   );
 }

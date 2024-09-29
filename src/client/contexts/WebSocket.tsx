@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { WithChildren } from "../util/WithChildren";
 import { useNavigate } from "react-router-dom";
 import qs from "qs";
@@ -10,16 +16,15 @@ import {
   Message,
   MessageType,
 } from "../../model/messages";
+import { CookiesContext } from "./Cookies";
 
 export interface WebSocketValue {
   websocket?: WebSocket;
   setMessageListener: (listener: (msg: Message) => void) => void;
-  refresh: () => void;
 }
 
 export const WebSocketContext = createContext<WebSocketValue>({
   setMessageListener: () => {},
-  refresh: () => {},
 });
 
 export interface WebSocketProviderProps extends WithChildren {
@@ -34,12 +39,16 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
 
   const url = location.host + "?" + qs.stringify(query);
 
-  const init = useCallback(
-    () => setWebsocket(new WebSocket("wss://" + url)),
-    [setWebsocket],
-  );
+  const init = useCallback(() => {
+    setWebsocket((ws) => {
+      ws?.close();
+      return new WebSocket("wss://" + url);
+    });
+  }, [setWebsocket]);
 
-  useEffect(() => init(), [init]);
+  const { cookies } = useContext(CookiesContext);
+
+  useEffect(init, [init, cookies]);
 
   const onMessage = useCallback(
     async (evt: MessageEvent) => {
@@ -78,7 +87,6 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
       value={{
         websocket,
         setMessageListener: (value) => setMessageListener(() => value),
-        refresh: init,
       }}
     >
       {children}
