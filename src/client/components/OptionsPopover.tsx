@@ -43,6 +43,7 @@ export function OptionsPopover(props: PopoverProps): React.ReactElement {
                 <MenuItem value="classic_dark">Classic dark</MenuItem>
                 <MenuItem value="win95">Windows 95</MenuItem>
                 <MenuItem value="win95_dark">Windows 95 dark</MenuItem>
+                <MenuItem value="vista">Vista</MenuItem>
               </Select>
             </FormControl>
           )}

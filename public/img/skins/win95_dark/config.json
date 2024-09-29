@@ -5,6 +5,17 @@
     "left": 1,
     "right": 1
   },
+  "mines": {
+    "left": 32,
+    "top": 30
+  },
+  "timer": {
+    "right": 32,
+    "top": 30
+  },
+  "button": {
+    "top": 30
+  },
   "frame": {
     "top": 55,
     "bottom": 8,

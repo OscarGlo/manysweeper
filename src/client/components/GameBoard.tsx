@@ -39,9 +39,9 @@ const keyActions = {
 export function GameBoard(): React.ReactElement {
   const [layers, setLayers] = useState<HTMLCanvasElement[]>([]);
   const [contexts, setContexts] = useState<CanvasRenderingContext2D[]>([]);
-  const mousePos = useRef(new Vector());
-  function setMousePos(pos: Vector) {
-    mousePos.current = pos;
+  const cursorPos = useRef(new Vector());
+  function setCursorPos(pos: Vector) {
+    cursorPos.current = pos;
   }
 
   const { websocket, setMessageListener } = useContext(WebSocketContext);
@@ -109,7 +109,7 @@ export function GameBoard(): React.ReactElement {
 
   const update = useCallback(() => {
     updateCursorPos(game);
-    if (contexts[1]) drawCursors(layers[1], contexts[1], game);
+    if (contexts[1]) drawCursors(layers[1], contexts[1], game, skin);
     if (
       contexts[0] &&
       ((clicked.current == null && game.clickedTile != null) ||
@@ -148,11 +148,11 @@ export function GameBoard(): React.ReactElement {
         onContextMenu={(evt) => evt.preventDefault()}
         onMouseMove={(evt) => {
           if (layers[1])
-            onMouseMove(websocket, layers[1], game, skin, evt, setMousePos);
+            onMouseMove(websocket, layers[1], game, skin, evt, setCursorPos);
         }}
         onMouseDown={(evt) => {
           const action = mouseActions[evt.button];
-          const tile = getTilePos(skin, mousePos.current);
+          const tile = getTilePos(game, skin, cursorPos.current);
           if (action != null) onActionDown(game, tile, action);
         }}
         onMouseUp={(evt) => {
@@ -160,17 +160,17 @@ export function GameBoard(): React.ReactElement {
           if (action != null)
             onActionUp(
               websocket,
-              mousePos.current,
+              cursorPos.current,
               game,
               skin,
               action,
-              boardSize.current,
+              layers[1],
             );
         }}
         tabIndex={0}
         onKeyDown={(evt) => {
           const action = keyActions[evt.code];
-          const tile = getTilePos(skin, mousePos.current);
+          const tile = getTilePos(game, skin, cursorPos.current);
           if (action != null) onActionDown(game, tile, action);
         }}
         onKeyUp={(evt) => {
@@ -178,11 +178,11 @@ export function GameBoard(): React.ReactElement {
           if (action != null)
             onActionUp(
               websocket,
-              mousePos.current,
+              cursorPos.current,
               game,
               skin,
               action,
-              boardSize.current,
+              layers[1],
             );
         }}
         sx={{

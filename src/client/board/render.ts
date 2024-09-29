@@ -2,9 +2,11 @@ import { Vector } from "../../util/Vector";
 import { Color } from "../../util/Color";
 import { FLAG, GameState, WALL } from "../../model/GameState";
 import { Skin } from "./Skin";
+import { boardOffset, cursorOffset } from "./board";
+import { Position } from "../../util/Position";
 
-const GUI_SCALE = 2;
-const TILE_SIZE = 32;
+export const GUI_SCALE = 2;
+export const TILE_SIZE = 32;
 
 const CURSOR_SMOOTHING = 0.5;
 
@@ -15,9 +17,13 @@ export function getBoardSize(game: GameState): Vector {
 export function getCanvasSize(skin: Skin, boardSize: Vector): Vector {
   return new Vector(
     boardSize.x +
-      (skin.loaded ? (skin.frame.left + skin.frame.right) * GUI_SCALE : 0),
+      (skin.loaded
+        ? (skin.frame.left + skin.frame.right) * skin.frame.scale * GUI_SCALE
+        : 0),
     boardSize.y +
-      (skin.loaded ? (skin.frame.top + skin.frame.bottom) * GUI_SCALE : 0),
+      (skin.loaded
+        ? (skin.frame.top + skin.frame.bottom) * skin.frame.scale * GUI_SCALE
+        : 0),
   );
 }
 
@@ -38,7 +44,7 @@ function tint(ctx: CanvasRenderingContext2D, color?: Color) {
 function drawCounter(
   ctx: CanvasRenderingContext2D,
   skin: Skin,
-  pos: Vector,
+  pos: Position,
   value: number,
   length: number,
 ) {
@@ -49,19 +55,23 @@ function drawCounter(
     else str = "0" + str;
   }
 
-  skin.counter.draw(
-    ctx,
-    pos,
-    new Vector(
-      skin.counter.left +
-        length * skin.counterNumbers.tileSize.x +
-        skin.counter.right,
-      skin.counter.top + skin.counterNumbers.tileSize.y + skin.counter.bottom,
-    ).times(GUI_SCALE),
-    GUI_SCALE,
+  const counterScale = skin.counter.scale * GUI_SCALE;
+
+  const size = new Vector(
+    skin.counter.left +
+      length * skin.counterNumbers.tileSize.x +
+      skin.counter.right,
+    skin.counter.top + skin.counterNumbers.tileSize.y + skin.counter.bottom,
+  ).times(counterScale);
+
+  const actualPos = pos.offset(
+    new Vector(ctx.canvas.width, ctx.canvas.height),
+    size,
   );
 
-  const yoff = skin.counter.height - skin.counterNumbers.tileSize.y;
+  skin.counter.draw(ctx, actualPos, size, counterScale);
+
+  const yoff = skin.counter.top * counterScale;
 
   for (let i = 0; i < length; i++) {
     const n = str[i] === "-" ? 10 : parseInt(str[i]);
@@ -69,26 +79,24 @@ function drawCounter(
       ctx,
       new Vector(n, 0),
       new Vector(
-        pos.x +
-          (skin.counter.left + i * skin.counterNumbers.tileSize.x) * GUI_SCALE,
-        pos.y + yoff,
+        actualPos.x +
+          (skin.counter.left + i * skin.counterNumbers.tileSize.x) *
+            counterScale,
+        actualPos.y + yoff,
       ),
-      skin.counterNumbers.tileSize.times(GUI_SCALE),
+      skin.counterNumbers.tileSize.times(counterScale),
     );
   }
 }
 
 export function getResetPosSize(
+  canvas: HTMLCanvasElement,
   skin: Skin,
-  boardSize: Vector,
 ): [Vector, Vector] {
+  const size = skin.button.tileSize.times(GUI_SCALE * skin.buttonScale);
   return [
-    new Vector(
-      skin.frame.left * GUI_SCALE +
-        (boardSize.x - skin.button.tileSize.x * GUI_SCALE) / 2,
-      30,
-    ),
-    skin.button.tileSize.times(GUI_SCALE),
+    skin.buttonPos.offset(new Vector(canvas.width, canvas.height), size),
+    size,
   ];
 }
 
@@ -110,7 +118,7 @@ export function draw(
     ctx,
     new Vector(0, 0),
     new Vector(canvas.width, canvas.height),
-    GUI_SCALE,
+    skin.frame.scale * GUI_SCALE,
   );
 
   // GUI
@@ -118,32 +126,18 @@ export function draw(
     (acc, s) => acc + (s === 10 ? 1 : 0),
     0,
   );
-  drawCounter(ctx, skin, new Vector(32, 30), game.mineCount - flagCount, 3);
+  drawCounter(ctx, skin, skin.minesPos, game.mineCount - flagCount, 3);
+
+  drawCounter(ctx, skin, skin.timerPos, game.timer.time, 3);
 
   skin.button.drawTile(
     ctx,
     game.win
       ? new Vector(2, 0)
       : game.loserId != null
-      ? new Vector(1, 0)
-      : new Vector(0, 0),
-    ...getResetPosSize(skin, drawSize),
-  );
-
-  drawCounter(
-    ctx,
-    skin,
-    new Vector(
-      canvas.width -
-        28 -
-        (skin.counter.left +
-          3 * skin.counterNumbers.tileSize.x +
-          skin.counter.right) *
-          GUI_SCALE,
-      30,
-    ),
-    game.timer.time,
-    3,
+        ? new Vector(1, 0)
+        : new Vector(0, 0),
+    ...getResetPosSize(canvas, skin),
   );
 
   const chorded =
@@ -154,8 +148,8 @@ export function draw(
     const isMine = game.mines?.get(pos) ?? false;
 
     const tilePos = new Vector(
-      pos.x * TILE_SIZE + skin.frame.left * GUI_SCALE,
-      pos.y * TILE_SIZE + skin.frame.top * GUI_SCALE,
+      pos.x * TILE_SIZE + skin.frame.left * skin.frame.scale * GUI_SCALE,
+      pos.y * TILE_SIZE + skin.frame.top * skin.frame.scale * GUI_SCALE,
     );
     const tileSize = new Vector(TILE_SIZE, TILE_SIZE);
 
@@ -207,6 +201,7 @@ export function drawCursors(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   game: GameState,
+  skin: Skin,
 ) {
   ctx.textAlign = "center";
   ctx.textBaseline = "hanging";
@@ -219,12 +214,15 @@ export function drawCursors(
   Object.values(game.users)
     .filter((user) => user.cursorPos != null)
     .forEach((user) => {
-      ctx.drawImage(cursor, user.cursorPos.x, user.cursorPos.y);
+      const pos = user.cursorPos
+        .minus(cursorOffset(game))
+        .plus(boardOffset(skin));
+      ctx.drawImage(cursor, pos.x, pos.y);
 
       if (user.username) {
         const textPos = new Vector(
-          user.cursorPos.x + (cursor.width * 2) / 3,
-          user.cursorPos.y + cursor.height + 6,
+          pos.x + (cursor.width * 2) / 3,
+          pos.y + cursor.height + 6,
         );
 
         const metrics = ctx.measureText(user.username);
@@ -244,11 +242,12 @@ export function drawCursors(
     });
 }
 
-export function getTilePos(skin: Skin, mousePos: Vector): Vector {
-  return new Vector(
-    Math.floor((mousePos.x - skin.frame.left * GUI_SCALE) / TILE_SIZE),
-    Math.floor((mousePos.y - skin.frame.top * GUI_SCALE) / TILE_SIZE),
-  );
+export function getTilePos(
+  game: GameState,
+  skin: Skin,
+  mousePos: Vector,
+): Vector {
+  return mousePos.minus(cursorOffset(game)).div(TILE_SIZE).floor();
 }
 
 export function updateCursorPos(game: GameState) {

@@ -1,5 +1,6 @@
 import { AtlasTexture, NineSliceTexture } from "./Texture";
 import { EventEmitter } from "events";
+import { Position } from "../../util/Position";
 
 export class Skin extends EventEmitter {
   name: string;
@@ -10,11 +11,24 @@ export class Skin extends EventEmitter {
   counterNumbers: AtlasTexture;
   button: AtlasTexture;
 
-  loaded: boolean = false;
+  minesPos: Position;
+  buttonPos: Position;
+  buttonScale: number;
+  timerPos: Position;
 
   constructor(name: string) {
     super();
     this.load(name);
+  }
+
+  get loaded(): boolean {
+    return [
+      this.tiles,
+      this.frame,
+      this.counter,
+      this.counterNumbers,
+      this.button,
+    ].every((s) => s.img.complete);
   }
 
   async load(name: string) {
@@ -24,46 +38,43 @@ export class Skin extends EventEmitter {
       res.json(),
     );
 
-    const tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 14);
-    const frame = new NineSliceTexture(
+    this.tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 14);
+    this.frame = new NineSliceTexture(
       `/img/skins/${name}/frame.png`,
       config.frame.top,
       config.frame.bottom,
       config.frame.left,
       config.frame.right,
+      config.frame.scale,
     );
-    const counter = new NineSliceTexture(
+    this.minesPos = new Position(config.mines);
+    this.timerPos = new Position(config.timer);
+    this.buttonPos = new Position(config.button);
+    this.buttonScale = config.button.scale;
+    this.counter = new NineSliceTexture(
       `/img/skins/${name}/counter.png`,
       config.counter.top,
       config.counter.bottom,
       config.counter.left,
       config.counter.right,
+      config.counter.scale,
     );
-    const counterNumbers = new AtlasTexture(
+    this.counterNumbers = new AtlasTexture(
       `/img/skins/${name}/counter_numbers.png`,
       1,
       11,
     );
-    const button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 3);
+    this.button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 3);
 
-    let loadCount = 0;
     const onLoad = () => {
-      if (++loadCount === 5) {
-        this.tiles = tiles;
-        this.frame = frame;
-        this.counter = counter;
-        this.counterNumbers = counterNumbers;
-        this.button = button;
-
-        this.loaded = true;
-        this.emit("load");
-      }
+      if (this.loaded) this.emit("load");
     };
 
-    tiles.img.addEventListener("load", onLoad);
-    frame.img.addEventListener("load", onLoad);
-    counter.img.addEventListener("load", onLoad);
-    counterNumbers.img.addEventListener("load", onLoad);
-    button.img.addEventListener("load", onLoad);
+    onLoad();
+    this.tiles.img.addEventListener("load", onLoad);
+    this.frame.img.addEventListener("load", onLoad);
+    this.counter.img.addEventListener("load", onLoad);
+    this.counterNumbers.img.addEventListener("load", onLoad);
+    this.button.img.addEventListener("load", onLoad);
   }
 }

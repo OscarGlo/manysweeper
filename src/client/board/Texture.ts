@@ -53,6 +53,8 @@ export class NineSliceTexture extends Texture {
   left: number;
   right: number;
 
+  scale: number;
+
   width: number;
   height: number;
 
@@ -65,12 +67,15 @@ export class NineSliceTexture extends Texture {
     bottom: number,
     left: number,
     right: number,
+    scale: number = 1,
   ) {
     super(src);
     this.top = top;
     this.bottom = bottom;
     this.left = left;
     this.right = right;
+
+    this.scale = scale;
 
     this.img.addEventListener("load", () => {
       this.width = this.img.width;
@@ -85,7 +90,7 @@ export class NineSliceTexture extends Texture {
     ctx: CanvasRenderingContext2D,
     pos: Vector,
     size: Vector,
-    scale: number = 1,
+    scale: number = this.scale,
   ) {
     const cw = size.x - (this.left + this.right) * scale;
     const ch = size.y - (this.top + this.bottom) * scale;

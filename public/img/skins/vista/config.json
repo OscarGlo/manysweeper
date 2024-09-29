@@ -1,0 +1,28 @@
+{
+  "counter": {
+    "top": 11,
+    "bottom": 9,
+    "left": 10,
+    "right": 10,
+    "scale": 0.5
+  },
+  "mines": {
+    "left": 20,
+    "top": 12
+  },
+  "timer": {
+    "right": 20,
+    "top": 12
+  },
+  "button": {
+    "top": 5,
+    "scale": 0.5
+  },
+  "frame": {
+    "top": 62,
+    "bottom": 24,
+    "left": 24,
+    "right": 24,
+    "scale": 0.5
+  }
+}

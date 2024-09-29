@@ -9,7 +9,7 @@ import { Matrix } from "../../util/Matrix";
 import { Color } from "../../util/Color";
 import { FLAG, GameState, State, WALL } from "../../model/GameState";
 import { throttled } from "../../util/util";
-import { getResetPosSize, getTilePos } from "./render";
+import { getBoardSize, getResetPosSize, getTilePos, GUI_SCALE } from "./render";
 import { Skin } from "./Skin";
 import React from "react";
 function send(ws: WebSocket, data: MessageValue[]) {
@@ -22,12 +22,26 @@ export const sendPos = throttled((ws: WebSocket, pos: Vector) => {
   }
 }, 50);
 
-export function getMousePos(
+export function boardOffset(skin: Skin): Vector {
+  return new Vector(skin.frame.left, skin.frame.top).times(
+    GUI_SCALE * skin.frame.scale,
+  );
+}
+
+export function cursorOffset(game: GameState): Vector {
+  return new Vector(2 ** 12).minus(getBoardSize(game)).div(2);
+}
+
+export function getCursorPos(
   canvas: HTMLCanvasElement,
+  game: GameState,
+  skin: Skin,
   evt: React.MouseEvent,
 ): Vector {
   const rect = canvas.getBoundingClientRect();
-  return new Vector(evt.clientX - rect.left, evt.clientY - rect.top);
+  return new Vector(evt.clientX - rect.left, evt.clientY - rect.top)
+    .plus(cursorOffset(game))
+    .minus(boardOffset(skin));
 }
 
 function updateClickedTile(game: GameState, tile: Vector) {
@@ -43,11 +57,11 @@ export function onMouseMove(
   game: GameState,
   skin: Skin,
   evt: React.MouseEvent,
-  setMousePos: (pos: Vector) => void,
+  setCursorPos: (pos: Vector) => void,
 ) {
-  const pos = getMousePos(canvas, evt);
-  setMousePos(pos);
-  const tile = getTilePos(skin, pos);
+  const pos = getCursorPos(canvas, game, skin, evt);
+  setCursorPos(pos);
+  const tile = getTilePos(game, skin, pos);
   if (game.holding) updateClickedTile(game, tile);
   sendPos(ws, pos);
 }
@@ -71,23 +85,25 @@ export function onActionUp(
   game: GameState,
   skin: Skin,
   action: Action,
-  boardSize: Vector,
+  canvas: HTMLCanvasElement,
 ) {
-  const [resetPos, resetSize] = getResetPosSize(skin, boardSize);
+  const [resetPos, resetSize] = getResetPosSize(canvas, skin);
 
   game.holding = false;
 
+  const actualPos = pos.plus(boardOffset(skin)).minus(cursorOffset(game));
+
   if (
     action === Action.BREAK &&
-    pos.x >= resetPos.x &&
-    pos.y >= resetPos.y &&
-    pos.x <= resetPos.x + resetSize.x &&
-    pos.y <= resetPos.y + resetSize.y &&
+    actualPos.x >= resetPos.x &&
+    actualPos.y >= resetPos.y &&
+    actualPos.x <= resetPos.x + resetSize.x &&
+    actualPos.y <= resetPos.y + resetSize.y &&
     (game.win || game.loserId != null)
   )
     return send(ws, [MessageType.RESET]);
 
-  const tilePos = getTilePos(skin, pos);
+  const tilePos = getTilePos(game, skin, pos);
 
   let sendMessage = true;
 
