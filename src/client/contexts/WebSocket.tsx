@@ -50,6 +50,8 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
   const { cookies } = useContext(CookiesContext);
 
   useEffect(() => {
+    if (cookies.color == null) return;
+
     const color = Color.hex(cookies.color);
     websocket?.send(
       serializeMessage([
