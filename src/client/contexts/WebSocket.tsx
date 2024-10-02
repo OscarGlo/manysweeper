@@ -76,10 +76,6 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
         const data = new Uint8Array(await evt.data.arrayBuffer());
         const msg = formatMessageData(deserializeMessage(data));
 
-        if (msg.type === MessageType.HOLE && !msg.last) {
-          await new Promise((res) => setTimeout(res, 100));
-        }
-
         if (msg.type === MessageType.ERROR) {
           const params = { errorId: query.id };
           if (msg.error === ErrorType.WRONG_PASS) params["wrongPass"] = true;
