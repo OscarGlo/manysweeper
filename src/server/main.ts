@@ -135,6 +135,8 @@ wss.on("connection", (ws, req) => {
       deserializeMessage(new Uint8Array(data as ArrayBuffer)),
     );
 
+    console.log(msg);
+
     const { x, y } = msg as { x: number; y: number };
     const pos = new Vector(x, y);
     const state = game.board.get(pos);
@@ -254,9 +256,7 @@ wss.on("connection", (ws, req) => {
         broadcast(id, [MessageType.WIN]);
       }
     } else if (msg.type === MessageType.FLAG) {
-      if (game.loserId != null || game.win) return;
-
-      game.timer.start();
+      if (game.loserId != null) return;
 
       // Toggle flag
       const flagId = roomId + pos.toString();
@@ -265,6 +265,8 @@ wss.on("connection", (ws, req) => {
         (user.id === game.flags.get(pos) || flagDelay[flagId] == null)
       ) {
         const flag = state === WALL;
+        if (!flag && game.win) return;
+
         game.board.set(pos, flag ? FLAG : WALL);
         if (flag) game.flags.set(pos, user.id);
         broadcast(id, [MessageType.FLAG, x, y, user.id]);
@@ -273,6 +275,8 @@ wss.on("connection", (ws, req) => {
         flagDelay[flagId] = true;
         setTimeout(() => delete flagDelay[flagId], FLAG_DELAY);
       }
+
+      game.timer.start();
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
         game.reset();
