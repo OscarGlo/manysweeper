@@ -1,12 +1,16 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useRef, useState } from "react";
 import { Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { UserAvatar } from "./UserAvatar";
 import { useInterval } from "../hooks/useInterval";
 import { arraysEqual } from "../util/arraysEqual";
+import { useResizeObserver } from "../hooks/useResizeObserver";
+import { throttled } from "../../util/util";
+import { CookiesContext } from "../contexts/Cookies";
 
 export function UserList(): React.ReactElement {
   const { game } = useContext(GameContext);
+  const { cookies, setCookie } = useContext(CookiesContext);
 
   const [users, setUsers] = useState({ ...game.users });
   const [init, setInit] = useState(false);
@@ -27,15 +31,27 @@ export function UserList(): React.ReactElement {
     [game, users, setUsers],
   );
 
+  const container = useRef<HTMLDivElement>();
+
+  useResizeObserver(
+    container,
+    throttled(
+      () => setCookie("userListHeight", container.current.offsetHeight + "px"),
+      1000,
+    ),
+    [setCookie],
+  );
+
   return (
     <Paper
       sx={{
-        height: "300px",
+        height: cookies.userListHeight ?? "300px",
         overflow: "auto",
         resize: "vertical",
         borderRadius: 0,
         zIndex: 10,
       }}
+      ref={container}
     >
       <Typography variant="h6" sx={{ marginTop: 1, marginLeft: 2 }}>
         Users
