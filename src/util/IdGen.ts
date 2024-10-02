@@ -8,11 +8,16 @@ export type Id = number;
 
 export class IdGen {
   private options?: IdGenOptions;
-  private ids = new Set<Id>();
+  private ids;
   private current;
 
   constructor(options?: IdGenOptions) {
     this.options = options;
+    this.reset();
+  }
+
+  reset() {
+    this.ids = new Set();
     this.current = this.options.min ?? 0;
   }
 

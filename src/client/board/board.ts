@@ -168,7 +168,13 @@ export async function messageListener(
       game.timer.time = msg.time as number;
       if (msg.started) game.timer.start();
       game.mineCount = msg.mineCount as number;
-      game.flags = new Matrix(game.width, game.height, msg.flags as number[]);
+      game.flags = new Matrix(
+        game.width,
+        game.height,
+        (msg.flags as number[]).map(
+          (flag) => [flag >> 5, flag & 0b11111] as [number, number],
+        ),
+      );
       break;
 
     case MessageType.USER: {
@@ -214,9 +220,8 @@ export async function messageListener(
         type: ChatMessageType.LEAVE,
       });
       delete game.users[msg.id as number];
-      if (game.loserId === msg.id) game.loserId = 0;
-      game.flags.forEachCell((id, p) => {
-        if (id === msg.id) game.flags.set(p, 0);
+      game.flags.forEachCell((flag, p) => {
+        if (flag[0] === msg.id) game.flags.set(p, [0, flag[1]]);
       });
       break;
 
@@ -266,7 +271,7 @@ export async function messageListener(
       break;
 
     case MessageType.FLAG:
-      game.flags.set(pos, msg.id as number);
+      game.flags.set(pos, [msg.id as number, msg.colorId as number]);
       game.board.set(pos, game.board.get(pos) === WALL ? FLAG : WALL);
       break;
 
@@ -302,6 +307,14 @@ export async function messageListener(
         type: ChatMessageType.JOIN,
         message: msg.message as string,
       });
+      break;
+
+    case MessageType.COLOR:
+      game.colors[msg.id as number] = Color.hsl(
+        msg.hue as number,
+        msg.saturation as number,
+        msg.lightness as number,
+      );
       break;
   }
 }

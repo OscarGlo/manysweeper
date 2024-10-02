@@ -15,6 +15,7 @@ export enum MessageType {
   LOSE,
   RESET,
   CHAT,
+  COLOR,
 }
 
 export type MessageSpecValue = number | [number] | "";
@@ -36,7 +37,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     width: 7,
     height: 7,
     started: 1,
-    flags: [8],
+    flags: [13],
   },
   [MessageType.USER]: {
     id: 8,
@@ -59,11 +60,12 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     directions: [5],
   },
   [MessageType.BOARD]: { tiles: [4] },
-  [MessageType.FLAG]: { x: 8, y: 8, id: 8 },
+  [MessageType.FLAG]: { x: 8, y: 8, id: 8, colorId: 5 },
   [MessageType.WIN]: {},
   [MessageType.LOSE]: { id: 8, mines: [1] },
   [MessageType.RESET]: { mineCount: 10 },
   [MessageType.CHAT]: { id: 8, message: "" },
+  [MessageType.COLOR]: { id: 8, hue: 10, saturation: 7, lightness: 7 },
 };
 
 const typeBits = Math.ceil(Math.log2(Object.values(MessageSpecs).length));

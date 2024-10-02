@@ -12,7 +12,7 @@ import {
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
-import { Border, FLAG, WALL } from "../model/GameState";
+import { Border, FLAG, GameState, WALL } from "../model/GameState";
 import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
 import { IdGen } from "../util/IdGen";
@@ -58,6 +58,25 @@ function userMessageData(user: UserConnection, update: boolean = false) {
     update ? 1 : 0,
     user.username,
   ];
+}
+
+function getColorId(game: GameState, color: Color, roomId: number): number {
+  let id;
+  if (
+    !Object.values(game.colors)
+      .map((c) => c.hex)
+      .includes(color.hex)
+  ) {
+    id = game.colorIds.get();
+    game.colors[id] = color;
+
+    broadcast(roomId, [MessageType.COLOR, id, color.h, color.s, color.l]);
+  } else {
+    id = parseInt(
+      Object.entries(game.colors).find((e) => e[1].hex == color.hex)[0],
+    );
+  }
+  return id;
 }
 
 const FLAG_DELAY = 300;
@@ -113,7 +132,7 @@ wss.on("connection", (ws, req) => {
     game.width,
     game.height,
     !game.firstClick,
-    game.flags.arr,
+    game.flags.arr.map(([user, color]) => (user << 5) + color),
   ]);
   // TODO Merge INIT and BOARD
   send([MessageType.BOARD, game.board.arr]);
@@ -121,6 +140,9 @@ wss.on("connection", (ws, req) => {
     send(userMessageData(user));
     if (user.cursorPos)
       send([MessageType.CURSOR, user.cursorPos.x, user.cursorPos.y, user.id]);
+  });
+  Object.entries(game.colors).forEach(([id, color]) => {
+    send([MessageType.COLOR, id, color.h, color.s, color.l]);
   });
 
   if (game.loserId != null)
@@ -155,7 +177,7 @@ wss.on("connection", (ws, req) => {
         if (game.mines.get(pos)) {
           game.board.set(pos, 0);
           broadcast(id, [MessageType.TILE, x, y]);
-          return fail(id, user.id);
+          return fail(id, getColorId(game, user.color, id));
         }
       }
 
@@ -173,7 +195,7 @@ wss.on("connection", (ws, req) => {
         [failed, borders] = game.chord(pos);
         if (failed) {
           broadcast(id, [MessageType.CHORD, x, y]);
-          return fail(id, user.id);
+          return fail(id, getColorId(game, user.color, id));
         }
       }
 
@@ -260,14 +282,16 @@ wss.on("connection", (ws, req) => {
       const flagId = roomId + pos.toString();
       if (
         state > 8 &&
-        (user.id === game.flags.get(pos) || flagDelay[flagId] == null)
+        (user.id === game.flags.get(pos)[0] || flagDelay[flagId] == null)
       ) {
         const flag = state === WALL;
         if (!flag && game.win) return;
 
         game.board.set(pos, flag ? FLAG : WALL);
-        if (flag) game.flags.set(pos, user.id);
-        broadcast(id, [MessageType.FLAG, x, y, user.id]);
+
+        const color = getColorId(game, user.color, id);
+        if (flag) game.flags.set(pos, [user.id, color]);
+        broadcast(id, [MessageType.FLAG, x, y, user.id, color]);
 
         // Prevent other users toggling flag
         flagDelay[flagId] = true;
@@ -304,10 +328,8 @@ wss.on("connection", (ws, req) => {
     if (id !== 0 && Object.values(game.users).length === 0)
       room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
 
-    if (game.loserId === user.id) game.loserId = INVALID_ID;
-
-    game.flags.forEachCell((id, p) => {
-      if (id === user.id) game.flags.set(p, INVALID_ID);
+    game.flags.forEachCell((flag, p) => {
+      if (flag[0] === user.id) game.flags.set(p, [INVALID_ID, flag[1]]);
     });
 
     broadcast(id, [MessageType.DISCONNECT, user.id]);

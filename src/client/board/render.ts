@@ -172,7 +172,7 @@ export function draw(
     if (isMine && n !== FLAG) {
       skin.tiles.drawTile(ctx, new Vector(1, 0), tilePos, tileSize);
       if (n === 0) {
-        tint(ctx, game.users[game.loserId] && game.users[game.loserId].color);
+        tint(ctx, game.users[game.loserId] && game.colors[game.loserId]);
         skin.tiles.drawTile(ctx, new Vector(4, 0), tilePos, tileSize);
         tint(ctx);
       } else {
@@ -182,8 +182,8 @@ export function draw(
     }
 
     if (n === FLAG) {
-      const id = game.flags.get(pos);
-      tint(ctx, game.users[id] && game.users[id].color);
+      const color = game.colors[game.flags.get(pos)[1]];
+      tint(ctx, color);
       skin.tiles.drawTile(
         ctx,
         game.loserId == null || isMine ? new Vector(2, 0) : new Vector(5, 0),

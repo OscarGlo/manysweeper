@@ -5,6 +5,7 @@ import { Vector } from "../util/Vector";
 import { shuffle } from "../util/util";
 import { Message, MessageData, MessageType } from "./messages";
 import { IdGen } from "../util/IdGen";
+import { Color } from "../util/Color";
 
 export const WALL = 9;
 export const FLAG = 10;
@@ -38,7 +39,7 @@ export class GameState {
   mineCount: number;
 
   board: Matrix<State>;
-  flags: Matrix<number>;
+  flags: Matrix<[number, number]>;
 
   mines?: Matrix<boolean>;
   counts?: Matrix<number>;
@@ -51,6 +52,8 @@ export class GameState {
   users: Record<string, UserConnection>;
   userIds: IdGen;
   chat: ChatMessage[];
+  colors: Record<string, Color>;
+  colorIds: IdGen;
 
   holding?: boolean;
   clickedTile?: Vector;
@@ -74,6 +77,8 @@ export class GameState {
     this.users = {};
     this.userIds = new IdGen({ min: 1, max: 255 });
     this.chat = [];
+    this.colors = {};
+    this.colorIds = new IdGen({ min: 1, max: 32 });
 
     this.reset();
     this.init = true;
@@ -83,10 +88,12 @@ export class GameState {
     this.mines = new Matrix<boolean>(this.width, this.height, false);
     this.counts = new Matrix(this.width, this.height, 0);
     this.board = new Matrix(this.width, this.height, WALL);
-    this.flags = new Matrix(this.width, this.height, 0);
+    this.flags = new Matrix(this.width, this.height, () => [0, 0]);
     this.firstClick = true;
     this.win = false;
     this.loserId = undefined;
+    this.colors = {};
+    this.colorIds.reset();
 
     this.timer.reset();
   }
