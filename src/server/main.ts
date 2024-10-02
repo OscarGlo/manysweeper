@@ -135,8 +135,6 @@ wss.on("connection", (ws, req) => {
       deserializeMessage(new Uint8Array(data as ArrayBuffer)),
     );
 
-    console.log(msg);
-
     const { x, y } = msg as { x: number; y: number };
     const pos = new Vector(x, y);
     const state = game.board.get(pos);
