@@ -20,6 +20,17 @@ export function CookiesProvider({
 }: WithChildren): React.ReactElement {
   const [cookies, setCookies] = useState(cookie.parse(document.cookie ?? ""));
 
+  // Refresh cookies on load
+  useEffect(() => {
+    const cookies = cookie.parse(document.cookie ?? "");
+    Object.entries(cookies).forEach(([key, value]) => {
+      document.cookie = cookie.serialize(key, value, {
+        maxAge: 30 * 24 * 60 * 60,
+        path: "/",
+      });
+    });
+  }, []);
+
   const setCookie: CookiesContextValue["setCookie"] = useCallback(
     (key, value) => {
       setCookies((cookies) => {
