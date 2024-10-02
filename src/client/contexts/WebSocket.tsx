@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { WithChildren } from "../util/WithChildren";
@@ -19,6 +20,7 @@ import {
 } from "../../model/messages";
 import { CookiesContext } from "./Cookies";
 import { Color } from "../../util/Color";
+import { Semaphore } from "../util/Semaphore";
 
 export interface WebSocketValue {
   websocket?: WebSocket;
@@ -66,18 +68,26 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
     );
   }, [cookies.username, cookies.color]);
 
+  const messageSemaphore = useRef(new Semaphore());
+
   const onMessage = useCallback(
     async (evt: MessageEvent) => {
-      const data = new Uint8Array(await evt.data.arrayBuffer());
-      const msg = formatMessageData(deserializeMessage(data));
+      messageSemaphore.current.queue(async () => {
+        const data = new Uint8Array(await evt.data.arrayBuffer());
+        const msg = formatMessageData(deserializeMessage(data));
 
-      if (msg.type === MessageType.ERROR) {
-        const params = { errorId: query.id };
-        if (msg.error === ErrorType.WRONG_PASS) params["wrongPass"] = true;
-        return navigate(`/?${qs.stringify(params)}`);
-      }
+        if (msg.type === MessageType.HOLE && !msg.last) {
+          await new Promise((res) => setTimeout(res, 100));
+        }
 
-      messageListener(msg);
+        if (msg.type === MessageType.ERROR) {
+          const params = { errorId: query.id };
+          if (msg.error === ErrorType.WRONG_PASS) params["wrongPass"] = true;
+          return navigate(`/?${qs.stringify(params)}`);
+        }
+
+        messageListener(msg);
+      });
     },
     [query, navigate, messageListener],
   );
