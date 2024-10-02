@@ -17,12 +17,14 @@ export enum ChatMessageType {
   MESSAGE,
   JOIN,
   LEAVE,
+  UPDATE,
 }
 
 export interface ChatMessage {
   user: UserConnection;
   type: ChatMessageType;
   message?: string;
+  oldUser?: UserConnection;
 }
 
 export class GameState {

@@ -48,13 +48,14 @@ function fail(id: number, loserId: number) {
 
 const INVALID_ID = 0;
 
-function userMessageData(user: UserConnection) {
+function userMessageData(user: UserConnection, update: boolean = false) {
   return [
     MessageType.USER,
     user.id,
     user.color.h,
     user.color.s,
     user.color.l,
+    update ? 1 : 0,
     user.username,
   ];
 }
@@ -283,6 +284,14 @@ wss.on("connection", (ws, req) => {
       broadcast(id, [MessageType.CURSOR, x, y, user.id], ws);
     } else if (msg.type === MessageType.CHAT) {
       broadcast(id, [MessageType.CHAT, user.id, msg.message]);
+    } else if (msg.type === MessageType.USER) {
+      user.color = Color.hsl(
+        msg.hue as number,
+        msg.saturation as number,
+        msg.lightness as number,
+      );
+      user.username = msg.username as string;
+      broadcast(id, userMessageData(user, true));
     }
   });
 

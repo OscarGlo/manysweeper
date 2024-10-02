@@ -15,8 +15,10 @@ import {
   formatMessageData,
   Message,
   MessageType,
+  serializeMessage,
 } from "../../model/messages";
 import { CookiesContext } from "./Cookies";
+import { Color } from "../../util/Color";
 
 export interface WebSocketValue {
   websocket?: WebSocket;
@@ -40,15 +42,27 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
   const url = location.host + "?" + qs.stringify(query);
 
   const init = useCallback(() => {
-    setWebsocket((ws) => {
-      ws?.close();
-      return new WebSocket("wss://" + url);
-    });
+    setWebsocket((ws) => new WebSocket("wss://" + url));
   }, [setWebsocket]);
+
+  useEffect(init, [init]);
 
   const { cookies } = useContext(CookiesContext);
 
-  useEffect(init, [init, cookies]);
+  useEffect(() => {
+    const color = Color.hex(cookies.color);
+    websocket?.send(
+      serializeMessage([
+        MessageType.USER,
+        0,
+        color.h,
+        color.s,
+        color.l,
+        true,
+        cookies.username,
+      ]),
+    );
+  }, [cookies.username, cookies.color]);
 
   const onMessage = useCallback(
     async (evt: MessageEvent) => {

@@ -171,9 +171,8 @@ export async function messageListener(
       game.flags = new Matrix(game.width, game.height, msg.flags as number[]);
       break;
 
-    case MessageType.USER:
-      game.users[msg.id as number] = {
-        id: msg.id as number,
+    case MessageType.USER: {
+      const data = {
         color: Color.hsl(
           msg.hue as number,
           msg.saturation as number,
@@ -181,11 +180,33 @@ export async function messageListener(
         ),
         username: msg.username as string,
       };
-      game.chat.push({
-        user: game.users[msg.id as number],
-        type: ChatMessageType.JOIN,
-      });
+      if (msg.update) {
+        const user = game.users[msg.id as number];
+        const oldUser = { ...user };
+
+        game.users[msg.id as number] = {
+          ...user,
+          ...data,
+        };
+
+        game.chat.push({
+          user: game.users[msg.id as number],
+          oldUser,
+          type: ChatMessageType.UPDATE,
+        });
+      } else {
+        game.users[msg.id as number] = {
+          id: msg.id as number,
+          ...data,
+        };
+
+        game.chat.push({
+          user: game.users[msg.id as number],
+          type: ChatMessageType.JOIN,
+        });
+      }
       break;
+    }
 
     case MessageType.DISCONNECT:
       game.chat.push({

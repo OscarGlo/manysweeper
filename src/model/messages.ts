@@ -43,6 +43,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     hue: 10,
     saturation: 7,
     lightness: 7,
+    update: 1,
     username: "",
   },
   [MessageType.DISCONNECT]: { id: 8 },
