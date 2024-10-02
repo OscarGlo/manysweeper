@@ -13,9 +13,16 @@ export type State = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export type Border = Vector[];
 
+export enum ChatMessageType {
+  MESSAGE,
+  JOIN,
+  LEAVE,
+}
+
 export interface ChatMessage {
   user: UserConnection;
-  message: string;
+  type: ChatMessageType;
+  message?: string;
 }
 
 export class GameState {

@@ -7,11 +7,18 @@ import {
 import { Vector } from "../../util/Vector";
 import { Matrix } from "../../util/Matrix";
 import { Color } from "../../util/Color";
-import { FLAG, GameState, State, WALL } from "../../model/GameState";
+import {
+  ChatMessageType,
+  FLAG,
+  GameState,
+  State,
+  WALL,
+} from "../../model/GameState";
 import { throttled } from "../../util/util";
 import { getBoardSize, getResetPosSize, getTilePos, GUI_SCALE } from "./render";
 import { Skin } from "./Skin";
 import React from "react";
+
 function send(ws: WebSocket, data: MessageValue[]) {
   if (ws.readyState === WebSocket.OPEN) ws.send(serializeMessage(data));
 }
@@ -174,9 +181,17 @@ export async function messageListener(
         ),
         username: msg.username as string,
       };
+      game.chat.push({
+        user: game.users[msg.id as number],
+        type: ChatMessageType.JOIN,
+      });
       break;
 
     case MessageType.DISCONNECT:
+      game.chat.push({
+        user: game.users[msg.id as number],
+        type: ChatMessageType.LEAVE,
+      });
       delete game.users[msg.id as number];
       if (game.loserId === msg.id) game.loserId = 0;
       game.flags.forEachCell((id, p) => {
@@ -260,10 +275,12 @@ export async function messageListener(
       game.win = false;
       break;
 
-    case MessageType.CHAT: {
-      const user = game.users[msg.id as number];
-      game.chat.push({ user, message: msg.message as string });
+    case MessageType.CHAT:
+      game.chat.push({
+        user: game.users[msg.id as number],
+        type: ChatMessageType.JOIN,
+        message: msg.message as string,
+      });
       break;
-    }
   }
 }

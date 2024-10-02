@@ -11,6 +11,7 @@ import { GameContext } from "../contexts/Game";
 import { WebSocketContext } from "../contexts/WebSocket";
 import { MessageType, serializeMessage } from "../../model/messages";
 import { useInterval } from "../hooks/useInterval";
+import { ChatMessageType } from "../../model/GameState";
 
 export function ChatBox(): React.ReactElement {
   const { websocket } = useContext(WebSocketContext);
@@ -90,6 +91,7 @@ export function ChatBox(): React.ReactElement {
               <Typography
                 key={msg.user.username + msg.message + i}
                 textAlign="left"
+                color={msg.message ? undefined : "gray"}
               >
                 <Typography
                   component="span"
@@ -98,7 +100,11 @@ export function ChatBox(): React.ReactElement {
                 >
                   {msg.user.username}
                 </Typography>
-                : {msg.message}
+                {msg.message
+                  ? `: ${msg.message}`
+                  : msg.type === ChatMessageType.JOIN
+                    ? ` joined the room.`
+                    : ` left the room.`}
               </Typography>
             ))}
           </Stack>
