@@ -113,11 +113,19 @@ export function GameBoard(): React.ReactElement {
   const update = useCallback(() => {
     updateCursorPos(game);
     if (contexts[1]) drawCursors(layers[1], contexts[1], game, skin);
-
-    clicked.current = game.clickedTile;
-    holding.current = game.holding;
-    time.current = game.timer.time;
-    _draw();
+    if (
+      contexts[0] &&
+      ((clicked.current == null && game.clickedTile != null) ||
+        (clicked.current != null &&
+          !clicked.current.equals(game.clickedTile)) ||
+        holding.current !== game.holding ||
+        time.current !== game.timer.time)
+    ) {
+      clicked.current = game.clickedTile;
+      holding.current = game.holding;
+      time.current = game.timer.time;
+      _draw();
+    }
 
     const frameId = requestAnimationFrame(update);
 
