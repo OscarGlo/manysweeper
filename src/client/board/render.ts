@@ -4,6 +4,7 @@ import { FLAG, GameState, WALL } from "../../model/GameState";
 import { Skin } from "./Skin";
 import { boardOffset, cursorOffset } from "./board";
 import { Position } from "../../util/Position";
+import { MatrixType } from "../../util/Matrix";
 
 export const GUI_SCALE = 2;
 export const TILE_SIZE = 32;
@@ -11,7 +12,11 @@ export const TILE_SIZE = 32;
 const CURSOR_SMOOTHING = 0.5;
 
 export function getBoardSize(game: GameState): Vector {
-  return new Vector(game.board.width, game.board.height).multiply(TILE_SIZE);
+  const base = new Vector(game.board.width, game.board.height).multiply(
+    TILE_SIZE,
+  );
+  if (game.type === MatrixType.HEX) base.x += TILE_SIZE / 2;
+  return base;
 }
 
 export function getCanvasSize(skin: Skin, boardSize: Vector): Vector {
@@ -151,12 +156,14 @@ export function draw(
       pos.x * TILE_SIZE + skin.frame.left * skin.frame.scale * GUI_SCALE,
       pos.y * TILE_SIZE + skin.frame.top * skin.frame.scale * GUI_SCALE,
     );
+    if (game.type === MatrixType.HEX && pos.y % 2 === 1)
+      tilePos.x += TILE_SIZE / 2;
     const tileSize = new Vector(TILE_SIZE, TILE_SIZE);
 
     const clicked =
       n === WALL &&
       (pos.equals(game.clickedTile) ||
-        (chorded && pos.euclidean(game.clickedTile) < 2));
+        (chorded && game.board.adjacent(pos, game.clickedTile)));
 
     skin.tiles.drawTile(
       ctx,
@@ -242,12 +249,10 @@ export function drawCursors(
     });
 }
 
-export function getTilePos(
-  game: GameState,
-  skin: Skin,
-  mousePos: Vector,
-): Vector {
-  return mousePos.minus(cursorOffset(game)).div(TILE_SIZE).floor();
+export function getTilePos(game: GameState, mousePos: Vector): Vector {
+  return game.board.getTilePos(
+    mousePos.minus(cursorOffset(game)).div(TILE_SIZE),
+  );
 }
 
 export function updateCursorPos(game: GameState) {

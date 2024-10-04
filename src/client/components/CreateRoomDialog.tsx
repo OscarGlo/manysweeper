@@ -3,10 +3,14 @@ import {
   Box,
   Button,
   Dialog,
+  FormControl,
   FormControlLabel,
   Grid,
+  InputLabel,
+  MenuItem,
   Radio,
   RadioGroup,
+  Select,
   Stack,
   TextField,
   ToggleButton,
@@ -19,6 +23,7 @@ import { CreateRoom } from "../../model/CreateRoom";
 import { CookiesContext } from "../contexts/Cookies";
 import { GameState } from "../../model/GameState";
 import { Room } from "../../model/Room";
+import { MatrixType } from "../../util/Matrix";
 
 export interface CreateRoomDialogProps {
   open: boolean;
@@ -48,11 +53,12 @@ export function CreateRoomDialog({
   const [height, setHeight] = useState(16);
   const [mines, setMines] = useState(99);
   const [level, setLevel] = useState(Level.EXPERT);
+  const [type, setType] = useState(MatrixType.SQUARE);
 
   const submit = useCallback(
     (evt: FormEvent) => {
       evt.preventDefault();
-      onSubmit({ name, password, width, height, mines });
+      onSubmit({ name, password, width, height, mines, type });
       props.onClose();
     },
     [onSubmit, name, password, width, height, mines, props.onClose],
@@ -228,6 +234,27 @@ export function CreateRoomDialog({
               <Typography>
                 Mine density: {Math.floor((100 * mines) / (width * height))}%
               </Typography>
+            </Grid>
+          </Grid>
+
+          <Typography fontSize="medium" fontWeight="bold">
+            Variants
+          </Typography>
+
+          <Grid container spacing={2} width="100%">
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>Tile type</InputLabel>
+                <Select
+                  size="small"
+                  label="Tile type"
+                  value={type}
+                  onChange={(evt) => setType(evt.target.value as MatrixType)}
+                >
+                  <MenuItem value={MatrixType.SQUARE}>Square</MenuItem>
+                  <MenuItem value={MatrixType.HEX}>Hexagonal</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
 

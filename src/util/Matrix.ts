@@ -1,25 +1,33 @@
 import { Vector } from "./Vector";
 
+export enum MatrixType {
+  SQUARE,
+  HEX,
+}
+
 export class Matrix<T> {
   width: number;
   height: number;
+  type: MatrixType;
   arr: Array<T>;
 
   constructor(
     width: number,
     height: number,
+    type: MatrixType,
     value?: T | T[] | ((p: Vector) => T),
   ) {
     this.width = width;
     this.height = height;
+    this.type = type;
 
     this.arr = Array.isArray(value)
       ? value.slice(0, width * height)
       : typeof value === "function"
-      ? new Array(width * height)
-          .fill(0)
-          .map((_, i) => (value as (p: Vector) => T)(this.getVec(i)))
-      : new Array(width * height).fill(value);
+        ? new Array(width * height)
+            .fill(0)
+            .map((_, i) => (value as (p: Vector) => T)(this.getVec(i)))
+        : new Array(width * height).fill(value);
   }
 
   getVec(i: number) {
@@ -50,9 +58,29 @@ export class Matrix<T> {
       t ?? (y as T);
   }
 
+  getTilePos(mousePos: Vector) {
+    if (this.type === MatrixType.HEX && mousePos.y % 2 >= 1) mousePos.x -= 0.5;
+    return mousePos.floor();
+  }
+
   forEachCell(fn: (t: T, p: Vector) => void) {
     for (let i = 0; i < this.arr.length; i++) {
       fn(this.arr[i], this.getVec(i));
+    }
+  }
+
+  adjacent(u: Vector, v: Vector): boolean {
+    switch (this.type) {
+      case MatrixType.SQUARE:
+        return u.euclidean(v) < 2;
+
+      case MatrixType.HEX:
+        return (
+          Math.abs(u.y - v.y) <= 1 &&
+          ((u.y === v.y && Math.abs(u.x - v.x) === 1) ||
+            (u.y % 2 === 0 && (v.x === u.x - 1 || v.x === u.x)) ||
+            (u.y % 2 === 1 && (v.x === u.x || v.x === u.x + 1)))
+        );
     }
   }
 
@@ -63,11 +91,13 @@ export class Matrix<T> {
   ) {
     for (let x = pos.x - 1; x <= pos.x + 1; x++) {
       for (let y = pos.y - 1; y <= pos.y + 1; y++) {
+        const p2 = new Vector(x, y);
         if (
           (x !== pos.x || y !== pos.y) &&
-          (keepOutOfBounds || this.inBounds(x, y))
+          (keepOutOfBounds || this.inBounds(x, y)) &&
+          this.adjacent(pos, p2)
         )
-          fn(this.get(x, y), new Vector(x, y));
+          fn(this.get(x, y), p2);
       }
     }
   }

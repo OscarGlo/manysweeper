@@ -5,7 +5,7 @@ import {
   serializeMessage,
 } from "../../model/messages";
 import { Vector } from "../../util/Vector";
-import { Matrix } from "../../util/Matrix";
+import { Matrix, MatrixType } from "../../util/Matrix";
 import { Color } from "../../util/Color";
 import {
   ChatMessageType,
@@ -68,7 +68,7 @@ export function onMouseMove(
 ) {
   const pos = getCursorPos(canvas, game, skin, evt);
   setCursorPos(pos);
-  const tile = getTilePos(game, skin, pos);
+  const tile = getTilePos(game, pos);
   if (game.holding) updateClickedTile(game, tile);
   sendPos(ws, pos);
 }
@@ -110,7 +110,7 @@ export function onActionUp(
   )
     return send(ws, [MessageType.RESET]);
 
-  const tilePos = getTilePos(game, skin, pos);
+  const tilePos = getTilePos(game, pos);
 
   let sendMessage = true;
 
@@ -161,16 +161,20 @@ export async function messageListener(
 
   switch (msg.type) {
     case MessageType.INIT:
-      game.reset();
-      game.init = true;
       game.width = msg.width as number;
       game.height = msg.height as number;
+      console.log(msg.tileType);
+      game.type = msg.tileType as MatrixType;
+      game.reset();
+      game.init = true;
+
       game.timer.time = msg.time as number;
       if (msg.started) game.timer.start();
       game.mineCount = msg.mineCount as number;
       game.flags = new Matrix(
         game.width,
         game.height,
+        game.type,
         (msg.flags as number[]).map(
           (flag) => [flag >> 5, flag & 0b11111] as [number, number],
         ),
@@ -266,6 +270,7 @@ export async function messageListener(
       game.board = new Matrix(
         game.flags.width,
         game.flags.height,
+        game.type,
         msg.tiles as State[],
       );
       break;
@@ -286,6 +291,7 @@ export async function messageListener(
       game.mines = new Matrix(
         game.flags.width,
         game.flags.height,
+        game.type,
         (msg.mines as number[]).map((m) => !!m),
       );
       break;

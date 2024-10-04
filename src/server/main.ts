@@ -22,13 +22,20 @@ import { WebSocketQuery } from "../model/WebSocketQuery";
 import bcrypt from "bcryptjs";
 
 import * as colors from "../../public/colors.json";
+import { MatrixType } from "../util/Matrix";
 
 const wss = new WebSocketServer({ server });
 
 export const roomId = new IdGen({ min: 1 });
 
 export const rooms: Record<number, Room> = {
-  0: new Room({ name: "Persistent expert", width: 30, height: 16, mines: 99 }),
+  0: new Room({
+    name: "Persistent expert",
+    width: 30,
+    height: 16,
+    mines: 99,
+    type: MatrixType.SQUARE,
+  }),
 };
 
 function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
@@ -131,6 +138,7 @@ wss.on("connection", (ws, req) => {
     game.timer.time,
     game.width,
     game.height,
+    game.type,
     !game.firstClick,
     game.flags.arr.map(([user, color]) => (user << 5) + color),
   ]);

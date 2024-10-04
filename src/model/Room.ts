@@ -21,7 +21,12 @@ export class Room {
         .hash(options.password, 10)
         .then((hash) => (this.passwordHash = hash));
 
-    this.game = new GameState(options.width, options.height, options.mines);
+    this.game = new GameState(
+      options.width,
+      options.height,
+      options.mines,
+      options.type,
+    );
     this.game.generate();
   }
 }

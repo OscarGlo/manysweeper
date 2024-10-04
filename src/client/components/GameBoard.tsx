@@ -7,11 +7,11 @@ import React, {
 } from "react";
 import {
   draw,
-  getTilePos,
   getBoardSize,
   updateCursorPos,
   getCanvasSize,
   drawCursors,
+  getTilePos,
 } from "../board/render";
 import {
   Action,
@@ -113,19 +113,11 @@ export function GameBoard(): React.ReactElement {
   const update = useCallback(() => {
     updateCursorPos(game);
     if (contexts[1]) drawCursors(layers[1], contexts[1], game, skin);
-    if (
-      contexts[0] &&
-      ((clicked.current == null && game.clickedTile != null) ||
-        (clicked.current != null &&
-          !clicked.current.equals(game.clickedTile)) ||
-        holding.current !== game.holding ||
-        time.current !== game.timer.time)
-    ) {
-      clicked.current = game.clickedTile;
-      holding.current = game.holding;
-      time.current = game.timer.time;
-      _draw();
-    }
+
+    clicked.current = game.clickedTile;
+    holding.current = game.holding;
+    time.current = game.timer.time;
+    _draw();
 
     const frameId = requestAnimationFrame(update);
 
@@ -155,7 +147,7 @@ export function GameBoard(): React.ReactElement {
         }}
         onMouseDown={(evt) => {
           const action = mouseActions[evt.button];
-          const tile = getTilePos(game, skin, cursorPos.current);
+          const tile = getTilePos(game, cursorPos.current);
           if (action != null) onActionDown(game, tile, action);
         }}
         onMouseUp={(evt) => {
@@ -173,7 +165,7 @@ export function GameBoard(): React.ReactElement {
         tabIndex={0}
         onKeyDown={(evt) => {
           const action = keyActions[evt.code];
-          const tile = getTilePos(game, skin, cursorPos.current);
+          const tile = getTilePos(game, cursorPos.current);
           if (action != null) onActionDown(game, tile, action);
         }}
         onKeyUp={(evt) => {

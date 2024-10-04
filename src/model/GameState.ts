@@ -1,4 +1,4 @@
-import { Matrix } from "../util/Matrix";
+import { Matrix, MatrixType } from "../util/Matrix";
 import { UserConnection } from "./UserConnection";
 import { Timer } from "../util/Timer";
 import { Vector } from "../util/Vector";
@@ -37,6 +37,7 @@ export class GameState {
   width: number;
   height: number;
   mineCount: number;
+  type: MatrixType;
 
   board: Matrix<State>;
   flags: Matrix<[number, number]>;
@@ -59,7 +60,12 @@ export class GameState {
   clickedTile?: Vector;
   init: boolean;
 
-  constructor(width: number, height: number, mineCount: number) {
+  constructor(
+    width: number,
+    height: number,
+    mineCount: number,
+    type: MatrixType,
+  ) {
     this.width = Math.max(
       Math.min(width ?? GameState.MAX_WIDTH, 50),
       GameState.MIN_WIDTH,
@@ -72,6 +78,7 @@ export class GameState {
       Math.min(mineCount ?? 99, this.width * this.height - 1),
       1,
     );
+    this.type = type;
 
     this.timer = new Timer({ max: 999 });
     this.users = {};
@@ -85,10 +92,10 @@ export class GameState {
   }
 
   reset() {
-    this.mines = new Matrix<boolean>(this.width, this.height, false);
-    this.counts = new Matrix(this.width, this.height, 0);
-    this.board = new Matrix(this.width, this.height, WALL);
-    this.flags = new Matrix(this.width, this.height, () => [0, 0]);
+    this.mines = new Matrix<boolean>(this.width, this.height, this.type, false);
+    this.counts = new Matrix(this.width, this.height, this.type, 0);
+    this.board = new Matrix(this.width, this.height, this.type, WALL);
+    this.flags = new Matrix(this.width, this.height, this.type, () => [0, 0]);
     this.firstClick = true;
     this.win = false;
     this.loserId = undefined;
@@ -151,12 +158,15 @@ export class GameState {
       if (n > 0) {
         let added = false;
         for (const border of borders) {
-          if (p.hamming(border[0]) === 1) {
+          if (this.board.adjacent(p, border[0])) {
             border.unshift(p);
             added = true;
             break;
           }
-          if (border.length > 1 && p.hamming(border[border.length - 1]) === 1) {
+          if (
+            border.length > 1 &&
+            this.board.adjacent(p, border[border.length - 1])
+          ) {
             border.push(p);
             added = true;
             break;
@@ -182,17 +192,20 @@ export class GameState {
         const toAdd = borders[i];
 
         let added = false;
-        if (border[0].hamming(toAdd[0]) === 1) {
+        if (this.board.adjacent(border[0], toAdd[0])) {
           border.unshift(...toAdd.reverse());
           added = true;
-        } else if (border[0].hamming(toAdd[toAdd.length - 1]) === 1) {
+        } else if (this.board.adjacent(border[0], toAdd[toAdd.length - 1])) {
           border.unshift(...toAdd);
           added = true;
-        } else if (border[border.length - 1].hamming(toAdd[0]) === 1) {
+        } else if (this.board.adjacent(border[border.length - 1], toAdd[0])) {
           border.push(...toAdd);
           added = true;
         } else if (
-          border[border.length - 1].hamming(toAdd[toAdd.length - 1]) === 1
+          this.board.adjacent(
+            border[border.length - 1],
+            toAdd[toAdd.length - 1],
+          )
         ) {
           border.push(...toAdd.reverse());
           added = true;
@@ -251,18 +264,22 @@ export class GameState {
   // HOLES
   static DIR_ENCODE = {
     0: {
-      1: 0b00000,
-      [-1]: 0b01000,
+      1: 0b000,
+      [-1]: 0b001,
     },
-    1: { 0: 0b10000 },
-    [-1]: { 0: 0b11000 },
+    1: { 1: 0b010, 0: 0b011, [-1]: 0b100 },
+    [-1]: { [-1]: 0b101, 0: 0b110, 1: 0b111 },
   };
 
   static DIR_DECODE = {
-    0b00000: new Vector(0, 1),
-    0b01000: new Vector(0, -1),
-    0b10000: new Vector(1, 0),
-    0b11000: new Vector(-1, 0),
+    0b000: new Vector(0, 1),
+    0b001: new Vector(0, -1),
+    0b010: new Vector(1, 1),
+    0b011: new Vector(1, 0),
+    0b100: new Vector(1, -1),
+    0b101: new Vector(-1, -1),
+    0b110: new Vector(-1, 0),
+    0b111: new Vector(-1, 1),
   };
 
   getHoleMessage(border: Border, clickPos: Vector, last: boolean): MessageData {
@@ -277,7 +294,7 @@ export class GameState {
       current = border.pop();
 
       directions.push(
-        GameState.DIR_ENCODE[current.x - prev.x][current.y - prev.y] +
+        (GameState.DIR_ENCODE[current.x - prev.x][current.y - prev.y] << 3) +
           this.counts.get(prev),
       );
     }
@@ -304,7 +321,7 @@ export class GameState {
       if (direction === 0) break;
 
       this.board.set(pos, direction & 0b111);
-      pos.add(GameState.DIR_DECODE[direction & 0b11000]);
+      pos.add(GameState.DIR_DECODE[direction >> 3]);
     }
   }
 
