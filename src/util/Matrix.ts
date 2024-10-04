@@ -72,7 +72,7 @@ export class Matrix<T> {
   adjacent(u: Vector, v: Vector): boolean {
     switch (this.type) {
       case MatrixType.SQUARE:
-        return u.euclidean(v) < 2;
+        return u.hamming(v) == 1;
 
       case MatrixType.HEX:
         return (
@@ -81,6 +81,16 @@ export class Matrix<T> {
             (u.y % 2 === 0 && (v.x === u.x - 1 || v.x === u.x)) ||
             (u.y % 2 === 1 && (v.x === u.x || v.x === u.x + 1)))
         );
+    }
+  }
+
+  neighbour(u: Vector, v: Vector): boolean {
+    switch (this.type) {
+      case MatrixType.SQUARE:
+        return u.euclidean(v) < 2;
+
+      case MatrixType.HEX:
+        return this.adjacent(u, v);
     }
   }
 
@@ -95,7 +105,7 @@ export class Matrix<T> {
         if (
           (x !== pos.x || y !== pos.y) &&
           (keepOutOfBounds || this.inBounds(x, y)) &&
-          this.adjacent(pos, p2)
+          this.neighbour(pos, p2)
         )
           fn(this.get(x, y), p2);
       }

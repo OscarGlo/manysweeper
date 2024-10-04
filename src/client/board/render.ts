@@ -163,7 +163,7 @@ export function draw(
     const clicked =
       n === WALL &&
       (pos.equals(game.clickedTile) ||
-        (chorded && game.board.adjacent(pos, game.clickedTile)));
+        (chorded && game.board.neighbour(pos, game.clickedTile)));
 
     skin.tiles.drawTile(
       ctx,
