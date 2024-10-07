@@ -60,7 +60,7 @@ export class Matrix<T> {
 
   getTilePos(mousePos: Vector) {
     if (this.type === MatrixType.HEX) {
-      mousePos.y /= 0.875;
+      mousePos.y = mousePos.y / 0.875 - 0.1;
       if (mousePos.y % 2 >= 1) {
         mousePos.x -= 0.5;
       }
