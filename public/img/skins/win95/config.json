@@ -21,5 +21,8 @@
     "bottom": 8,
     "left": 12,
     "right": 8
-  }
+  },
+  "variants": [
+    "hex"
+  ]
 }

@@ -4,8 +4,10 @@ import { Position } from "../../util/Position";
 
 export class Skin extends EventEmitter {
   name: string;
+  loading: boolean;
 
   tiles: AtlasTexture;
+  tilesHex?: AtlasTexture;
   frame: NineSliceTexture;
   counter: NineSliceTexture;
   counterNumbers: AtlasTexture;
@@ -22,13 +24,16 @@ export class Skin extends EventEmitter {
   }
 
   get loaded(): boolean {
-    return [
+    const toLoad = [
       this.tiles,
       this.frame,
       this.counter,
       this.counterNumbers,
       this.button,
-    ].every((s) => s.img.complete);
+    ];
+    if (this.tilesHex != null) toLoad.push(this.tilesHex);
+
+    return toLoad.every((s) => s.img.complete);
   }
 
   async load(name: string) {
@@ -39,6 +44,10 @@ export class Skin extends EventEmitter {
     );
 
     this.tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 14);
+    this.tilesHex =
+      config.variants && config.variants.includes("hex")
+        ? new AtlasTexture(`/img/skins/${name}/tiles_hex.png`, 1, 12)
+        : null;
     this.frame = new NineSliceTexture(
       `/img/skins/${name}/frame.png`,
       config.frame.top,

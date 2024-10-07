@@ -163,7 +163,6 @@ export async function messageListener(
     case MessageType.INIT:
       game.width = msg.width as number;
       game.height = msg.height as number;
-      console.log(msg.tileType);
       game.type = msg.tileType as MatrixType;
       game.reset();
       game.init = true;

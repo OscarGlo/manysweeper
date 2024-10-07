@@ -15,7 +15,10 @@ export function getBoardSize(game: GameState): Vector {
   const base = new Vector(game.board.width, game.board.height).multiply(
     TILE_SIZE,
   );
-  if (game.type === MatrixType.HEX) base.x += TILE_SIZE / 2;
+  if (game.type === MatrixType.HEX) {
+    base.x += TILE_SIZE / 2 + 2;
+    base.y = base.y * 0.875 + 9;
+  }
   return base;
 }
 
@@ -148,24 +151,36 @@ export function draw(
   const chorded =
     game.clickedTile != null && game.board.get(game.clickedTile) < WALL;
 
+  const tileset =
+    game.type === MatrixType.HEX && skin.tilesHex != null
+      ? skin.tilesHex
+      : skin.tiles;
+
+  const aspectRatio = tileset.tileSize.y / tileset.tileSize.x;
+  const tileSize = new Vector(TILE_SIZE, TILE_SIZE * aspectRatio);
+
   // Board
   game.board.forEachCell((n, pos) => {
     const isMine = game.mines?.get(pos) ?? false;
 
-    const tilePos = new Vector(
-      pos.x * TILE_SIZE + skin.frame.left * skin.frame.scale * GUI_SCALE,
-      pos.y * TILE_SIZE + skin.frame.top * skin.frame.scale * GUI_SCALE,
+    const tilePos = pos.times(TILE_SIZE);
+    if (game.type === MatrixType.HEX) {
+      if (pos.y % 2 === 1) tilePos.x += TILE_SIZE / 2;
+      tilePos.y = Math.floor(tilePos.y * 0.875);
+    }
+    tilePos.add(
+      new Vector(
+        skin.frame.left * skin.frame.scale,
+        skin.frame.top * skin.frame.scale,
+      ).times(GUI_SCALE),
     );
-    if (game.type === MatrixType.HEX && pos.y % 2 === 1)
-      tilePos.x += TILE_SIZE / 2;
-    const tileSize = new Vector(TILE_SIZE, TILE_SIZE);
 
     const clicked =
       n === WALL &&
       (pos.equals(game.clickedTile) ||
         (chorded && game.board.neighbour(pos, game.clickedTile)));
 
-    skin.tiles.drawTile(
+    tileset.drawTile(
       ctx,
       clicked || n < WALL || (isMine && n !== FLAG)
         ? new Vector(1, 0)
@@ -177,13 +192,13 @@ export function draw(
     if (clicked) return;
 
     if (isMine && n !== FLAG) {
-      skin.tiles.drawTile(ctx, new Vector(1, 0), tilePos, tileSize);
+      tileset.drawTile(ctx, new Vector(1, 0), tilePos, tileSize);
       if (n === 0) {
         tint(ctx, game.users[game.loserId] && game.colors[game.loserId]);
-        skin.tiles.drawTile(ctx, new Vector(4, 0), tilePos, tileSize);
+        tileset.drawTile(ctx, new Vector(4, 0), tilePos, tileSize);
         tint(ctx);
       } else {
-        skin.tiles.drawTile(ctx, new Vector(3, 0), tilePos, tileSize);
+        tileset.drawTile(ctx, new Vector(3, 0), tilePos, tileSize);
       }
       return;
     }
@@ -191,7 +206,7 @@ export function draw(
     if (n === FLAG) {
       const color = game.colors[game.flags.get(pos)[1]];
       tint(ctx, color);
-      skin.tiles.drawTile(
+      tileset.drawTile(
         ctx,
         game.loserId == null || isMine ? new Vector(2, 0) : new Vector(5, 0),
         tilePos,
@@ -199,7 +214,7 @@ export function draw(
       );
       tint(ctx);
     } else if (n > 0 && n < WALL) {
-      skin.tiles.drawTile(ctx, new Vector(n + 5, 0), tilePos, tileSize);
+      tileset.drawTile(ctx, new Vector(n + 5, 0), tilePos, tileSize);
     }
   });
 }
