@@ -34,7 +34,7 @@ export const rooms: Record<number, Room> = {
     width: 30,
     height: 16,
     mines: 99,
-    type: MatrixType.HEX,
+    type: MatrixType.SQUARE,
   }),
 };
 
