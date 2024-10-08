@@ -55,15 +55,6 @@ export function CreateRoomDialog({
   const [level, setLevel] = useState(Level.EXPERT);
   const [type, setType] = useState(MatrixType.SQUARE);
 
-  const submit = useCallback(
-    (evt: FormEvent) => {
-      evt.preventDefault();
-      onSubmit({ name, password, width, height, mines, type });
-      props.onClose();
-    },
-    [onSubmit, name, password, width, height, mines, props.onClose],
-  );
-
   const updateDifficulty = useCallback(
     (level: Level) => {
       setLevel(level);
@@ -92,7 +83,13 @@ export function CreateRoomDialog({
 
   return (
     <Dialog {...props}>
-      <form onSubmit={submit}>
+      <form
+        onSubmit={(evt: FormEvent) => {
+          evt.preventDefault();
+          onSubmit({ name, password, width, height, mines, type });
+          props.onClose();
+        }}
+      >
         <Stack gap={2} sx={{ padding: 2 }}>
           <Typography fontSize="large" fontWeight="bold">
             New room
