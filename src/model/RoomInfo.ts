@@ -1,7 +1,7 @@
-export interface RoomInfo {
+import { CreateRoom } from "./CreateRoom";
+
+export interface RoomInfo extends Omit<CreateRoom, "password"> {
   id: number;
-  name: string;
   private: boolean;
   players: string;
-  board: string;
 }

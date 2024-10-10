@@ -12,7 +12,10 @@ function serializeRoom(id: number, room: Room): RoomInfo {
     name: room.name,
     private: room.private,
     players: Object.values(room.game.users).length.toString(),
-    board: `${room.game.width}×${room.game.height} (${room.game.mineCount})`,
+    width: room.game.width,
+    height: room.game.height,
+    mines: room.game.mineCount,
+    type: room.game.type,
   };
 }
 
@@ -37,8 +40,8 @@ router
       room == null
         ? 404
         : (await bcrypt.compare(req.body.password, room.passwordHash))
-        ? 200
-        : 403,
+          ? 200
+          : 403,
     );
   });
 

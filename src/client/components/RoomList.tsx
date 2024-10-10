@@ -6,7 +6,14 @@ import {
   GridFooter,
   GridFooterContainer,
 } from "@mui/x-data-grid";
-import { Alert, Button, Paper, Snackbar } from "@mui/material";
+import {
+  Alert,
+  Button,
+  Paper,
+  Snackbar,
+  Stack,
+  Typography,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PublicIcon from "@mui/icons-material/Public";
 import LockIcon from "@mui/icons-material/Lock";
@@ -16,6 +23,23 @@ import { PasswordDialog } from "./PasswordDialog";
 import { RoomInfo } from "../../model/RoomInfo";
 import { Center } from "./Center";
 import { post } from "../util/post";
+import { MatrixType } from "../../util/Matrix";
+import Square from "@mui/icons-material/SquareOutlined";
+import Hexagon from "@mui/icons-material/HexagonOutlined";
+
+export interface ShapeIconProps {
+  type: MatrixType;
+}
+
+export function ShapeIcon({ type }: ShapeIconProps): React.ReactElement {
+  switch (type) {
+    case MatrixType.SQUARE:
+      return <Square />;
+
+    case MatrixType.HEX:
+      return <Hexagon />;
+  }
+}
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
@@ -38,7 +62,15 @@ const columns: GridColDef[] = [
     headerAlign: "center",
     type: "string",
     align: "center",
-    width: 100,
+    width: 150,
+    renderCell: (params) => (
+      <Stack direction="row" gap={0.5}>
+        <ShapeIcon type={params.row.type} />
+        <Typography fontSize="inherit" paddingTop={0.25}>
+          {params.row.width}×{params.row.height} ({params.row.mines})
+        </Typography>
+      </Stack>
+    ),
   },
   {
     field: "players",
@@ -47,8 +79,6 @@ const columns: GridColDef[] = [
     type: "string",
     align: "center",
     width: 70,
-    // sortComparator: (p1, p2) =>
-    //   parseInt(p1.split("/")[0]) - parseInt(p2.split("/")[0]),
   },
 ];
 
