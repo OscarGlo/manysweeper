@@ -194,7 +194,7 @@ export function draw(
     if (isMine && n !== FLAG) {
       tileset.drawTile(ctx, new Vector(1, 0), tilePos, tileSize);
       if (n === 0) {
-        tint(ctx, game.users[game.loserId] && game.colors[game.loserId]);
+        tint(ctx, game.colors[game.loserId]);
         tileset.drawTile(ctx, new Vector(4, 0), tilePos, tileSize);
         tint(ctx);
       } else {
