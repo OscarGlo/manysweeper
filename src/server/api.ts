@@ -16,6 +16,7 @@ function serializeRoom(id: number, room: Room): RoomInfo {
     height: room.game.height,
     mines: room.game.mineCount,
     type: room.game.type,
+    guessLevel: room.game.guessLevel,
   };
 }
 

@@ -30,6 +30,10 @@ export class Matrix<T> {
         : new Array(width * height).fill(value);
   }
 
+  static copy<T>(m: Matrix<T>): Matrix<T> {
+    return new Matrix(m.width, m.height, m.type, (p) => m.get(p));
+  }
+
   getVec(i: number) {
     return new Vector(Math.floor(i / this.height), i % this.height);
   }

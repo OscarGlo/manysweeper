@@ -12,6 +12,7 @@ import {
   Paper,
   Snackbar,
   Stack,
+  SvgIconProps,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -26,20 +27,31 @@ import { post } from "../util/post";
 import { MatrixType } from "../../util/Matrix";
 import Square from "@mui/icons-material/SquareOutlined";
 import Hexagon from "@mui/icons-material/HexagonOutlined";
+import { GuessLevel } from "../../model/GameState";
 
-export interface ShapeIconProps {
-  type: MatrixType;
+export interface ShapeIconProps extends SvgIconProps {
+  shape: MatrixType;
 }
 
-export function ShapeIcon({ type }: ShapeIconProps): React.ReactElement {
-  switch (type) {
-    case MatrixType.SQUARE:
-      return <Square />;
+const shapeIcons = {
+  [MatrixType.SQUARE]: Square,
+  [MatrixType.HEX]: Hexagon,
+};
 
-    case MatrixType.HEX:
-      return <Hexagon />;
-  }
+export function ShapeIcon({
+  shape,
+  ...props
+}: ShapeIconProps): React.ReactElement {
+  const Component = shapeIcons[shape];
+  console.log(props);
+  return <Component {...props} />;
 }
+
+export const guessColors = {
+  [GuessLevel.None]: undefined,
+  [GuessLevel.Easy]: "#3c3",
+  [GuessLevel.Medium]: "#cc3",
+};
 
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
@@ -65,7 +77,10 @@ const columns: GridColDef[] = [
     width: 150,
     renderCell: (params) => (
       <Stack direction="row" gap={0.5}>
-        <ShapeIcon type={params.row.type} />
+        <ShapeIcon
+          shape={params.row.type}
+          sx={{ fill: guessColors[params.row.guessLevel] }}
+        />
         <Typography fontSize="inherit" paddingTop={0.25}>
           {params.row.width}×{params.row.height} ({params.row.mines})
         </Typography>

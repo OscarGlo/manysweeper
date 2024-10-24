@@ -26,6 +26,7 @@ export class Room {
       options.height,
       options.mines,
       options.type,
+      options.guessLevel,
     );
     this.game.generate();
   }

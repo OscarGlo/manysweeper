@@ -21,7 +21,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import LockIcon from "@mui/icons-material/Lock";
 import { CreateRoom } from "../../model/CreateRoom";
 import { CookiesContext } from "../contexts/Cookies";
-import { GameState } from "../../model/GameState";
+import { GameState, GuessLevel } from "../../model/GameState";
 import { Room } from "../../model/Room";
 import { MatrixType } from "../../util/Matrix";
 
@@ -54,6 +54,7 @@ export function CreateRoomDialog({
   const [mines, setMines] = useState(99);
   const [level, setLevel] = useState(Level.EXPERT);
   const [type, setType] = useState(MatrixType.SQUARE);
+  const [guessLevel, setGuessLevel] = useState(GuessLevel.None);
 
   const updateDifficulty = useCallback(
     (level: Level) => {
@@ -86,7 +87,15 @@ export function CreateRoomDialog({
       <form
         onSubmit={(evt: FormEvent) => {
           evt.preventDefault();
-          onSubmit({ name, password, width, height, mines, type });
+          onSubmit({
+            name,
+            password,
+            width,
+            height,
+            mines,
+            type,
+            guessLevel,
+          });
           props.onClose();
         }}
       >
@@ -239,6 +248,24 @@ export function CreateRoomDialog({
           </Typography>
 
           <Grid container spacing={2} width="100%">
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>No guessing level</InputLabel>
+                <Select
+                  size="small"
+                  label="No guessing level"
+                  value={guessLevel}
+                  onChange={(evt) =>
+                    setGuessLevel(evt.target.value as GuessLevel)
+                  }
+                >
+                  <MenuItem value={GuessLevel.None}>None (random)</MenuItem>
+                  <MenuItem value={GuessLevel.Easy}>Easy</MenuItem>
+                  <MenuItem value={GuessLevel.Medium}>Medium</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
             <Grid item xs={6}>
               <FormControl fullWidth>
                 <InputLabel>Tile type</InputLabel>

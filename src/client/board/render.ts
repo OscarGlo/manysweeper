@@ -189,6 +189,11 @@ export function draw(
       tileSize,
     );
 
+    if (n === WALL && pos.equals(game.startPos)) {
+      ctx.fillStyle = "#33dd3344";
+      ctx.fillRect(tilePos.x, tilePos.y, tileSize.x, tileSize.y);
+    }
+
     if (clicked) return;
 
     if (isMine && n !== FLAG) {

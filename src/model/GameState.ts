@@ -6,6 +6,7 @@ import { shuffle } from "../util/util";
 import { Message, MessageData, MessageType } from "./messages";
 import { IdGen } from "../util/IdGen";
 import { Color } from "../util/Color";
+import { Solver } from "./Solver";
 
 export const WALL = 9;
 export const FLAG = 10;
@@ -13,6 +14,12 @@ export const FLAG = 10;
 export type State = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export type Border = Vector[];
+
+export enum GuessLevel {
+  None,
+  Easy,
+  Medium,
+}
 
 export enum ChatMessageType {
   MESSAGE,
@@ -38,6 +45,7 @@ export class GameState {
   height: number;
   mineCount: number;
   type: MatrixType;
+  guessLevel: GuessLevel;
 
   board: Matrix<State>;
   flags: Matrix<[number, number]>;
@@ -50,6 +58,8 @@ export class GameState {
   win: boolean;
   firstClick: boolean;
   loserId?: number;
+  startPos?: Vector;
+
   users: Record<string, UserConnection>;
   userIds: IdGen;
   chat: ChatMessage[];
@@ -65,6 +75,7 @@ export class GameState {
     height: number,
     mineCount: number,
     type: MatrixType,
+    guessLevel: GuessLevel,
   ) {
     this.width = Math.max(
       Math.min(width ?? GameState.MAX_WIDTH, 50),
@@ -79,6 +90,7 @@ export class GameState {
       1,
     );
     this.type = type;
+    this.guessLevel = guessLevel;
 
     this.timer = new Timer({ max: 999 });
     this.users = {};
@@ -89,6 +101,24 @@ export class GameState {
 
     this.reset();
     this.init = true;
+  }
+
+  static copy(game: GameState): GameState {
+    const newGame = new GameState(
+      game.width,
+      game.height,
+      game.mineCount,
+      game.type,
+      game.guessLevel,
+    );
+    newGame.init = game.init;
+    newGame.mines = Matrix.copy(game.mines);
+    newGame.counts = Matrix.copy(game.counts);
+    newGame.firstClick = game.firstClick;
+    newGame.win = game.win;
+    newGame.loserId = game.loserId;
+    newGame.timer.time = game.timer.time;
+    return newGame;
   }
 
   reset() {
@@ -106,13 +136,27 @@ export class GameState {
   }
 
   generate() {
-    const positions = new Array(this.width * this.height)
-      .fill(0)
-      .map((_, i) => new Vector(Math.floor(i / this.height), i % this.height));
-    const minesPos = shuffle(positions).slice(0, this.mineCount);
+    do {
+      this.mines = new Matrix<boolean>(
+        this.width,
+        this.height,
+        this.type,
+        false,
+      );
 
-    minesPos.forEach((p) => this.mines.set(p, true));
-    this.countMines();
+      const positions = new Array(this.width * this.height)
+        .fill(0)
+        .map(
+          (_, i) => new Vector(Math.floor(i / this.height), i % this.height),
+        );
+      const minesPos = shuffle(positions).slice(0, this.mineCount);
+
+      minesPos.forEach((p) => this.mines.set(p, true));
+      this.countMines();
+
+      if (this.guessLevel != GuessLevel.None)
+        this.startPos = new Solver(this).solve();
+    } while (this.guessLevel != GuessLevel.None && this.startPos == null);
   }
 
   countMines() {
@@ -135,9 +179,9 @@ export class GameState {
 
       this.mines.set(pos, false);
       this.mines.set(newPos, true);
-    }
 
-    this.countMines();
+      this.countMines();
+    }
 
     this.firstClick = false;
   }

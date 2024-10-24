@@ -11,6 +11,7 @@ import {
   ChatMessageType,
   FLAG,
   GameState,
+  GuessLevel,
   State,
   WALL,
 } from "../../model/GameState";
@@ -178,6 +179,9 @@ export async function messageListener(
           (flag) => [flag >> 5, flag & 0b11111] as [number, number],
         ),
       );
+      game.guessLevel = msg.guessLevel as GuessLevel;
+      if (game.guessLevel)
+        game.startPos = new Vector(msg.startX as number, msg.startY as number);
       break;
 
     case MessageType.USER: {
@@ -304,6 +308,8 @@ export async function messageListener(
       game.mines = undefined;
       game.loserId = undefined;
       game.win = false;
+      if (game.guessLevel)
+        game.startPos = new Vector(msg.startX as number, msg.startY as number);
       break;
 
     case MessageType.CHAT:

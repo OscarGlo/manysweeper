@@ -37,6 +37,9 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     width: 7,
     height: 7,
     tileType: 1,
+    guessLevel: 2,
+    startX: 7,
+    startY: 7,
     started: 1,
     flags: [13],
   },
@@ -64,7 +67,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   [MessageType.FLAG]: { x: 8, y: 8, id: 8, colorId: 5 },
   [MessageType.WIN]: {},
   [MessageType.LOSE]: { id: 8, mines: [1] },
-  [MessageType.RESET]: { mineCount: 10 },
+  [MessageType.RESET]: { mineCount: 10, startX: 7, startY: 7 },
   [MessageType.CHAT]: { id: 8, message: "" },
   [MessageType.COLOR]: { id: 8, hue: 10, saturation: 7, lightness: 7 },
 };

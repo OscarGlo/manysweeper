@@ -12,7 +12,7 @@ import {
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
-import { Border, FLAG, GameState, WALL } from "../model/GameState";
+import { Border, FLAG, GameState, GuessLevel, WALL } from "../model/GameState";
 import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
 import { IdGen } from "../util/IdGen";
@@ -35,6 +35,7 @@ export const rooms: Record<number, Room> = {
     height: 16,
     mines: 99,
     type: MatrixType.SQUARE,
+    guessLevel: GuessLevel.None,
   }),
 };
 
@@ -139,6 +140,9 @@ wss.on("connection", (ws, req) => {
     game.width,
     game.height,
     game.type,
+    game.guessLevel,
+    game.startPos?.x ?? 0,
+    game.startPos?.y ?? 0,
     !game.firstClick,
     game.flags.arr.map(([user, color]) => (user << 5) + color),
   ]);
@@ -311,7 +315,12 @@ wss.on("connection", (ws, req) => {
       if (game.loserId != null || game.win) {
         game.reset();
         game.generate();
-        broadcast(id, [MessageType.RESET, game.mineCount]);
+        broadcast(id, [
+          MessageType.RESET,
+          game.mineCount,
+          game.startPos?.x ?? 0,
+          game.startPos?.y ?? 0,
+        ]);
       }
     } else if (msg.type === MessageType.CURSOR) {
       game.users[user.id].cursorPos = new Vector(x, y);
