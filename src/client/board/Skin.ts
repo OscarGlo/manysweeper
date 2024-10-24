@@ -43,10 +43,10 @@ export class Skin extends EventEmitter {
       res.json(),
     );
 
-    this.tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 14);
+    this.tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 15);
     this.tilesHex =
       config.variants && config.variants.includes("hex")
-        ? new AtlasTexture(`/img/skins/${name}/tiles_hex.png`, 1, 12)
+        ? new AtlasTexture(`/img/skins/${name}/tiles_hex.png`, 1, 13)
         : null;
     this.frame = new NineSliceTexture(
       `/img/skins/${name}/frame.png`,

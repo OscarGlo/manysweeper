@@ -189,10 +189,8 @@ export function draw(
       tileSize,
     );
 
-    if (n === WALL && pos.equals(game.startPos)) {
-      ctx.fillStyle = "#33dd3344";
-      ctx.fillRect(tilePos.x, tilePos.y, tileSize.x, tileSize.y);
-    }
+    if (n === WALL && !clicked && pos.equals(game.startPos))
+      tileset.drawTile(ctx, new Vector(6, 0), tilePos, tileSize);
 
     if (clicked) return;
 
@@ -219,7 +217,7 @@ export function draw(
       );
       tint(ctx);
     } else if (n > 0 && n < WALL) {
-      tileset.drawTile(ctx, new Vector(n + 5, 0), tilePos, tileSize);
+      tileset.drawTile(ctx, new Vector(n + 6, 0), tilePos, tileSize);
     }
   });
 }
