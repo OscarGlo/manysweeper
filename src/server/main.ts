@@ -31,14 +31,23 @@ export const roomId = new IdGen({ min: 1 });
 
 export const rooms: Record<number, Room> = {
   0: new Room({
-    name: "Persistent expert",
+    name: "Persistent expert (Random)",
     width: 30,
     height: 16,
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.None,
   }),
+  1: new Room({
+    name: "Persistent expert (NG)",
+    width: 30,
+    height: 16,
+    mines: 99,
+    type: MatrixType.SQUARE,
+    guessLevel: GuessLevel.Medium,
+  }),
 };
+const persistentIds = Object.keys(rooms);
 
 function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
@@ -52,7 +61,6 @@ function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
 function generateBroadcast(id: number) {
   const game = rooms[id].game;
   generateBoard(game).then(() => {
-    console.log(game);
     broadcast(id, [
       MessageType.RESET,
       game.mineCount,
@@ -357,7 +365,7 @@ wss.on("connection", (ws, req) => {
     delete game.users[user.id];
     game.userIds.delete(user.id);
 
-    if (id !== 0 && Object.values(game.users).length === 0)
+    if (id in persistentIds && Object.values(game.users).length === 0)
       room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
 
     game.flags.forEachCell((flag, p) => {

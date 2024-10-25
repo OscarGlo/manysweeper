@@ -162,8 +162,6 @@ export async function messageListener(
   if (msg.x != null && msg.y != null)
     pos = new Vector(msg.x as number, msg.y as number);
 
-  console.log(msg);
-
   switch (msg.type) {
     case MessageType.INIT:
       game.width = msg.width as number;
