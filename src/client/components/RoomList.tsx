@@ -43,7 +43,6 @@ export function ShapeIcon({
   ...props
 }: ShapeIconProps): React.ReactElement {
   const Component = shapeIcons[shape];
-  console.log(props);
   return <Component {...props} />;
 }
 

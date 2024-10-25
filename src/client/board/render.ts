@@ -140,11 +140,13 @@ export function draw(
 
   skin.button.drawTile(
     ctx,
-    game.win
-      ? new Vector(2, 0)
-      : game.loserId != null
-        ? new Vector(1, 0)
-        : new Vector(0, 0),
+    game.loading
+      ? new Vector(3, 0)
+      : game.win
+        ? new Vector(2, 0)
+        : game.loserId != null
+          ? new Vector(1, 0)
+          : new Vector(0, 0),
     ...getResetPosSize(canvas, skin),
   );
 
@@ -189,7 +191,12 @@ export function draw(
       tileSize,
     );
 
-    if (n === WALL && !clicked && pos.equals(game.startPos))
+    if (
+      n === WALL &&
+      (!game.loading || game.win || game.loserId) &&
+      !clicked &&
+      pos.equals(game.startPos)
+    )
       tileset.drawTile(ctx, new Vector(6, 0), tilePos, tileSize);
 
     if (clicked) return;

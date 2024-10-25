@@ -81,7 +81,7 @@ export enum Action {
 }
 
 export function onActionDown(game: GameState, tile: Vector, action: Action) {
-  if (!game.win && !game.loserId && action === Action.BREAK) {
+  if (!game.win && !game.loading && !game.loserId && action === Action.BREAK) {
     game.holding = true;
     updateClickedTile(game, tile);
   }
@@ -111,18 +111,20 @@ export function onActionUp(
   )
     return send(ws, [MessageType.RESET]);
 
+  if ((game.win && action !== Action.FLAG) || game.loserId != null) return;
+
   const tilePos = getTilePos(game, pos);
 
-  let sendMessage = true;
-
   if (game.board.inBounds(tilePos)) {
+    let sendMessage = true;
+
     const state = game.board.get(tilePos);
     if (
       state === 0 ||
       state === 8 ||
       (state < 8 && action === Action.FLAG) ||
       (state === WALL && action === Action.CHORD) ||
-      (state === FLAG && action !== Action.FLAG)
+      (state === FLAG && (action !== Action.FLAG || game.win))
     )
       sendMessage = false;
 
@@ -159,6 +161,8 @@ export async function messageListener(
   let pos: Vector;
   if (msg.x != null && msg.y != null)
     pos = new Vector(msg.x as number, msg.y as number);
+
+  console.log(msg);
 
   switch (msg.type) {
     case MessageType.INIT:
@@ -310,6 +314,7 @@ export async function messageListener(
       game.win = false;
       if (game.guessLevel)
         game.startPos = new Vector(msg.startX as number, msg.startY as number);
+      game.loading = false;
       break;
 
     case MessageType.CHAT:
@@ -326,6 +331,10 @@ export async function messageListener(
         msg.saturation as number,
         msg.lightness as number,
       );
+      break;
+
+    case MessageType.LOADING:
+      game.loading = true;
       break;
   }
 }

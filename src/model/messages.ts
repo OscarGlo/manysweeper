@@ -16,6 +16,7 @@ export enum MessageType {
   RESET,
   CHAT,
   COLOR,
+  LOADING,
 }
 
 export type MessageSpecValue = number | [number] | "";
@@ -70,6 +71,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   [MessageType.RESET]: { mineCount: 10, startX: 7, startY: 7 },
   [MessageType.CHAT]: { id: 8, message: "" },
   [MessageType.COLOR]: { id: 8, hue: 10, saturation: 7, lightness: 7 },
+  [MessageType.LOADING]: {},
 };
 
 const typeBits = Math.ceil(Math.log2(Object.values(MessageSpecs).length));

@@ -23,6 +23,7 @@ import bcrypt from "bcryptjs";
 
 import * as colors from "../../public/colors.json";
 import { MatrixType } from "../util/Matrix";
+import { generateBoard } from "./generate/generateBoard";
 
 const wss = new WebSocketServer({ server });
 
@@ -47,6 +48,20 @@ function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
       });
   });
 }
+
+function generateBroadcast(id: number) {
+  const game = rooms[id].game;
+  generateBoard(game).then(() => {
+    console.log(game);
+    broadcast(id, [
+      MessageType.RESET,
+      game.mineCount,
+      game.startPos?.x ?? 0,
+      game.startPos?.y ?? 0,
+    ]);
+  });
+}
+generateBroadcast(0);
 
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
@@ -160,6 +175,8 @@ wss.on("connection", (ws, req) => {
   if (game.loserId != null)
     send([MessageType.LOSE, game.loserId, game.mines.arr]);
   else if (game.win) send([MessageType.WIN]);
+
+  if (game.loading) broadcast(id, [MessageType.LOADING]);
 
   game.users[user.id] = user;
   broadcast(id, userMessageData(user));
@@ -313,14 +330,12 @@ wss.on("connection", (ws, req) => {
       game.timer.start();
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
+        if (game.guessLevel != GuessLevel.None)
+          broadcast(id, [MessageType.LOADING]);
+
+        // Async game generation
         game.reset();
-        game.generate();
-        broadcast(id, [
-          MessageType.RESET,
-          game.mineCount,
-          game.startPos?.x ?? 0,
-          game.startPos?.y ?? 0,
-        ]);
+        generateBroadcast(id);
       }
     } else if (msg.type === MessageType.CURSOR) {
       game.users[user.id].cursorPos = new Vector(x, y);

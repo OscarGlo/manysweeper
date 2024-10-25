@@ -31,7 +31,12 @@ export class Matrix<T> {
   }
 
   static copy<T>(m: Matrix<T>): Matrix<T> {
-    return new Matrix(m.width, m.height, m.type, (p) => m.get(p));
+    return new Matrix(
+      m.width,
+      m.height,
+      m.type,
+      (p) => m.arr[p.y + p.x * m.height],
+    );
   }
 
   getVec(i: number) {

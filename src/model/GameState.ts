@@ -2,10 +2,10 @@ import { Matrix, MatrixType } from "../util/Matrix";
 import { UserConnection } from "./UserConnection";
 import { Timer } from "../util/Timer";
 import { Vector } from "../util/Vector";
-import { shuffle } from "../util/util";
 import { Message, MessageData, MessageType } from "./messages";
 import { IdGen } from "../util/IdGen";
 import { Color } from "../util/Color";
+import { shuffle } from "../util/util";
 import { Solver } from "./Solver";
 
 export const WALL = 9;
@@ -69,6 +69,7 @@ export class GameState {
   holding?: boolean;
   clickedTile?: Vector;
   init: boolean;
+  loading: boolean;
 
   constructor(
     width: number,

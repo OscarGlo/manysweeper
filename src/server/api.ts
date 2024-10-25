@@ -3,6 +3,7 @@ import { rooms, roomId } from "./main";
 import { Room } from "../model/Room";
 import { RoomInfo } from "../model/RoomInfo";
 import bcrypt from "bcryptjs";
+import { generateBoard } from "./generate/generateBoard";
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ router
   .post("/rooms", (req, res) => {
     const id = roomId.get();
     const room = new Room(req.body);
+    generateBoard(room.game);
     rooms[id] = room;
     room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
     res.send(serializeRoom(id, room));

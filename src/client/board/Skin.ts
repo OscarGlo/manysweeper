@@ -73,7 +73,7 @@ export class Skin extends EventEmitter {
       1,
       11,
     );
-    this.button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 3);
+    this.button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 4);
 
     const onLoad = () => {
       if (this.loaded) this.emit("load");

@@ -28,6 +28,5 @@ export class Room {
       options.type,
       options.guessLevel,
     );
-    this.game.generate();
   }
 }
