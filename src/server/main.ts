@@ -27,28 +27,6 @@ import { generateBoard } from "./generate/generateBoard";
 
 const wss = new WebSocketServer({ server });
 
-export const roomId = new IdGen({ min: 1 });
-
-export const rooms: Record<number, Room> = {
-  0: new Room({
-    name: "Persistent expert (Random)",
-    width: 30,
-    height: 16,
-    mines: 99,
-    type: MatrixType.SQUARE,
-    guessLevel: GuessLevel.None,
-  }),
-  1: new Room({
-    name: "Persistent expert (NG)",
-    width: 30,
-    height: 16,
-    mines: 99,
-    type: MatrixType.SQUARE,
-    guessLevel: GuessLevel.Medium,
-  }),
-};
-const persistentIds = Object.keys(rooms);
-
 function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
   wss.clients.forEach((ws) => {
     if (ws["roomId"] === roomId && ws !== from)
@@ -69,7 +47,30 @@ function generateBroadcast(id: number) {
     ]);
   });
 }
-generateBroadcast(0);
+
+export const roomId = new IdGen({ min: 1 });
+
+export const rooms: Record<number, Room> = {
+  0: new Room({
+    name: "Persistent expert (Random)",
+    width: 30,
+    height: 16,
+    mines: 99,
+    type: MatrixType.SQUARE,
+    guessLevel: GuessLevel.None,
+  }),
+  1: new Room({
+    name: "Persistent expert (NG)",
+    width: 30,
+    height: 16,
+    mines: 99,
+    type: MatrixType.SQUARE,
+    guessLevel: GuessLevel.Medium,
+  }),
+};
+
+const persistentIds = Object.keys(rooms);
+persistentIds.map((i) => generateBroadcast(parseInt(i)));
 
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();

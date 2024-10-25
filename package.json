@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"scripts": {
 		"build-dev": "cross-env DEV=1 tsc-watch --onSuccess \"node ./dist/src/server/main\"",
-		"bundle-dev": "watchify -v -t babelify -u ./dist/src/server/*.js ./dist/src/client/app.js -o ./public/bundle.js",
-		"build": "tsc && browserify -t babelify -u ./dist/src/server/*.js ./dist/src/client/app.js -o ./public/bundle.js",
+		"bundle-dev": "watchify -v -t babelify -x worker_threads ./dist/src/client/app.js -o ./public/bundle.js",
+		"build": "tsc && browserify -t babelify -x worker_threads ./dist/src/client/app.js -o ./public/bundle.js",
 		"start": "nodemon ./dist/src/server/main"
 	},
 	"dependencies": {
