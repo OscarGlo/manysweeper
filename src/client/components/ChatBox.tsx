@@ -89,9 +89,11 @@ export function ChatBox(): React.ReactElement {
           >
             {chat.map((msg, i) => (
               <Typography
-                key={msg.user.username + msg.message + i}
+                key={msg.user?.username + msg.message + i}
                 textAlign="left"
-                color={msg.message ? undefined : "gray"}
+                color={
+                  msg.type === ChatMessageType.MESSAGE ? undefined : "gray"
+                }
               >
                 {msg.oldUser ? (
                   <>
@@ -105,15 +107,19 @@ export function ChatBox(): React.ReactElement {
                     {" was updated to "}
                   </>
                 ) : null}
-                <Typography
-                  component="span"
-                  color={msg.user.color.hex}
-                  fontWeight="bold"
-                >
-                  {msg.user.username}
-                </Typography>
+                {msg.user ? (
+                  <Typography
+                    component="span"
+                    color={msg.user.color.hex}
+                    fontWeight="bold"
+                  >
+                    {msg.user.username}
+                  </Typography>
+                ) : null}
                 {msg.message
-                  ? `: ${msg.message}`
+                  ? msg.type === ChatMessageType.LOG
+                    ? msg.message
+                    : `: ${msg.message}`
                   : msg.type === ChatMessageType.JOIN
                     ? ` joined the room.`
                     : msg.type === ChatMessageType.LEAVE

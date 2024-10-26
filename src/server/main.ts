@@ -36,19 +36,21 @@ function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
   });
 }
 
-function generateBroadcast(id: number) {
+function reset(id: number) {
   const game = rooms[id].game;
-  generateBoard(game).then(() => {
-    broadcast(id, [
-      MessageType.RESET,
-      game.mineCount,
-      game.startPos?.x ?? 0,
-      game.startPos?.y ?? 0,
-    ]);
-  });
+  broadcast(id, [
+    MessageType.RESET,
+    game.mineCount,
+    game.startPos != null,
+    game.startPos?.x ?? 0,
+    game.startPos?.y ?? 0,
+  ]);
 }
 
-export const roomId = new IdGen({ min: 1 });
+function generateBroadcast(id: number) {
+  const game = rooms[id].game;
+  generateBoard(game).then(() => reset(id));
+}
 
 export const rooms: Record<number, Room> = {
   0: new Room({
@@ -69,8 +71,10 @@ export const rooms: Record<number, Room> = {
   }),
 };
 
-const persistentIds = Object.keys(rooms);
-persistentIds.map((i) => generateBroadcast(parseInt(i)));
+const persistentIds = Object.keys(rooms).map((s) => parseInt(s));
+persistentIds.map((i) => generateBroadcast(i));
+
+export const roomId = new IdGen({ min: Math.max(...persistentIds) + 1 });
 
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
@@ -165,6 +169,7 @@ wss.on("connection", (ws, req) => {
     game.height,
     game.type,
     game.guessLevel,
+    game.startPos != null,
     game.startPos?.x ?? 0,
     game.startPos?.y ?? 0,
     !game.firstClick,
@@ -185,10 +190,12 @@ wss.on("connection", (ws, req) => {
     send([MessageType.LOSE, game.loserId, game.mines.arr]);
   else if (game.win) send([MessageType.WIN]);
 
-  if (game.loading) broadcast(id, [MessageType.LOADING]);
+  if (game.loading) send([MessageType.LOADING]);
 
   game.users[user.id] = user;
   broadcast(id, userMessageData(user));
+
+  room.on("generated", () => reset(id));
 
   ws.on("message", (data) => {
     const msg = formatMessageData(

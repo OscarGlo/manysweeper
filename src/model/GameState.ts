@@ -7,6 +7,7 @@ import { IdGen } from "../util/IdGen";
 import { Color } from "../util/Color";
 import { shuffle } from "../util/util";
 import { Solver } from "./Solver";
+import { EventEmitter } from "events";
 
 export const WALL = 9;
 export const FLAG = 10;
@@ -26,20 +27,23 @@ export enum ChatMessageType {
   JOIN,
   LEAVE,
   UPDATE,
+  LOG,
 }
 
 export interface ChatMessage {
-  user: UserConnection;
   type: ChatMessageType;
+  user?: UserConnection;
   message?: string;
   oldUser?: UserConnection;
 }
 
-export class GameState {
+export class GameState extends EventEmitter {
   static MIN_WIDTH = 1;
   static MAX_WIDTH = 50;
   static MIN_HEIGHT = 1;
   static MAX_HEIGHT = 50;
+
+  static MAX_GENERATE = 10 * 1000;
 
   width: number;
   height: number;
@@ -70,6 +74,7 @@ export class GameState {
   clickedTile?: Vector;
   init: boolean;
   loading: boolean;
+  attempts: number;
 
   constructor(
     width: number,
@@ -78,6 +83,7 @@ export class GameState {
     type: MatrixType,
     guessLevel: GuessLevel,
   ) {
+    super();
     this.width = Math.max(
       Math.min(width ?? GameState.MAX_WIDTH, 50),
       GameState.MIN_WIDTH,
@@ -102,6 +108,7 @@ export class GameState {
 
     this.reset();
     this.init = true;
+    this.attempts = 0;
   }
 
   static copy(game: GameState): GameState {
@@ -119,6 +126,7 @@ export class GameState {
     newGame.win = game.win;
     newGame.loserId = game.loserId;
     newGame.timer.time = game.timer.time;
+    newGame.attempts = game.attempts;
     return newGame;
   }
 
@@ -137,6 +145,8 @@ export class GameState {
   }
 
   generate() {
+    this.attempts = 0;
+    const time = Date.now();
     do {
       this.mines = new Matrix<boolean>(
         this.width,
@@ -155,9 +165,15 @@ export class GameState {
       minesPos.forEach((p) => this.mines.set(p, true));
       this.countMines();
 
-      if (this.guessLevel != GuessLevel.None)
+      if (this.guessLevel != GuessLevel.None) {
+        this.attempts++;
         this.startPos = new Solver(this).solve();
-    } while (this.guessLevel != GuessLevel.None && this.startPos == null);
+      }
+    } while (
+      this.guessLevel != GuessLevel.None &&
+      this.startPos == null &&
+      Date.now() - time < GameState.MAX_GENERATE
+    );
   }
 
   countMines() {

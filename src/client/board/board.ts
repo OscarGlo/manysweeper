@@ -182,8 +182,9 @@ export async function messageListener(
         ),
       );
       game.guessLevel = msg.guessLevel as GuessLevel;
-      if (game.guessLevel)
-        game.startPos = new Vector(msg.startX as number, msg.startY as number);
+      game.startPos = msg.hasStart
+        ? new Vector(msg.startX as number, msg.startY as number)
+        : null;
       break;
 
     case MessageType.USER: {
@@ -310,15 +311,22 @@ export async function messageListener(
       game.mines = undefined;
       game.loserId = undefined;
       game.win = false;
-      if (game.guessLevel)
-        game.startPos = new Vector(msg.startX as number, msg.startY as number);
+      game.startPos = msg.hasStart
+        ? new Vector(msg.startX as number, msg.startY as number)
+        : null;
       game.loading = false;
+
+      if (game.guessLevel != GuessLevel.None && game.startPos == null)
+        game.chat.push({
+          type: ChatMessageType.LOG,
+          message: "Board generation timeout.",
+        });
       break;
 
     case MessageType.CHAT:
       game.chat.push({
         user: game.users[msg.id as number],
-        type: ChatMessageType.JOIN,
+        type: ChatMessageType.MESSAGE,
         message: msg.message as string,
       });
       break;

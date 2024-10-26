@@ -32,7 +32,7 @@ router
   .post("/rooms", (req, res) => {
     const id = roomId.get();
     const room = new Room(req.body);
-    generateBoard(room.game);
+    generateBoard(room.game).then(() => room.emit("generated"));
     rooms[id] = room;
     room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
     res.send(serializeRoom(id, room));
