@@ -20,6 +20,7 @@ export enum GuessLevel {
   None,
   Easy,
   Medium,
+  Hard,
 }
 
 export enum ChatMessageType {

@@ -67,7 +67,7 @@ export const rooms: Record<number, Room> = {
     height: 16,
     mines: 99,
     type: MatrixType.SQUARE,
-    guessLevel: GuessLevel.Medium,
+    guessLevel: GuessLevel.Hard,
   }),
 };
 

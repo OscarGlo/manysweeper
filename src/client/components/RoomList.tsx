@@ -48,8 +48,9 @@ export function ShapeIcon({
 
 export const guessColors = {
   [GuessLevel.None]: undefined,
-  [GuessLevel.Easy]: "#3c3",
-  [GuessLevel.Medium]: "#cc3",
+  [GuessLevel.Easy]: "#3d3",
+  [GuessLevel.Medium]: "#dd3",
+  [GuessLevel.Hard]: "#d33",
 };
 
 const columns: GridColDef[] = [

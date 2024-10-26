@@ -262,6 +262,7 @@ export function CreateRoomDialog({
                   <MenuItem value={GuessLevel.None}>None (random)</MenuItem>
                   <MenuItem value={GuessLevel.Easy}>Easy</MenuItem>
                   <MenuItem value={GuessLevel.Medium}>Medium</MenuItem>
+                  <MenuItem value={GuessLevel.Hard}>Hard</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
