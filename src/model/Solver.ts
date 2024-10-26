@@ -23,7 +23,6 @@ export class Solver {
   }
 
   solve(): Vector | null {
-    console.log("GEN");
     if (!this.game.firstClick) return null;
 
     const holes = [];
@@ -33,11 +32,15 @@ export class Solver {
     const start = holes[Math.floor(Math.random() * holes.length)];
     this.game.open(start);
 
-    while (this.step()) {
-      // loop until nothing to open
-    }
+    let step: GuessLevel | null;
+    let max = GuessLevel.Easy;
 
-    return this.game.checkWin() ? start : null;
+    do {
+      step = this.step();
+      if (step > max) max = step;
+    } while (step != null);
+
+    return max == this.game.guessLevel && this.game.checkWin() ? start : null;
   }
 
   stepConstraints(constraints: Constraint[]): boolean {
@@ -56,7 +59,6 @@ export class Solver {
           c.pos.forEach((p) => {
             if (!d.pos.some((q) => p.equals(q))) {
               this.game.open(p);
-              if (c.hard || d.hard) console.log("HARD");
               stepped = true;
             }
           });
@@ -64,7 +66,6 @@ export class Solver {
           c.pos.forEach((p) => {
             if (!d.pos.some((q) => p.equals(q))) {
               this.game.board.set(p, FLAG);
-              if (c.hard || d.hard) console.log("HARD");
               stepped = true;
             }
           });
@@ -73,7 +74,7 @@ export class Solver {
     return stepped;
   }
 
-  step(): boolean {
+  step(): GuessLevel | null {
     let stepped = false;
     const constraints: Constraint[] = [];
 
@@ -117,11 +118,13 @@ export class Solver {
       }
     });
 
-    if (stepped || this.game.guessLevel === GuessLevel.Easy) return stepped;
+    if (stepped || this.game.guessLevel === GuessLevel.Easy)
+      return stepped ? GuessLevel.Easy : null;
 
     stepped = this.stepConstraints(constraints);
 
-    if (stepped || this.game.guessLevel === GuessLevel.Medium) return stepped;
+    if (stepped || this.game.guessLevel === GuessLevel.Medium)
+      return stepped ? GuessLevel.Medium : null;
 
     let added;
     do {
@@ -148,6 +151,6 @@ export class Solver {
       );
     } while (added);
 
-    return this.stepConstraints(constraints);
+    return this.stepConstraints(constraints) ? GuessLevel.Hard : null;
   }
 }
