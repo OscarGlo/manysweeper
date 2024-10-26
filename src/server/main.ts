@@ -366,7 +366,7 @@ wss.on("connection", (ws, req) => {
     delete game.users[user.id];
     game.userIds.delete(user.id);
 
-    if (id in persistentIds && Object.values(game.users).length === 0)
+    if (!(id in persistentIds) && Object.values(game.users).length === 0)
       room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
 
     game.flags.forEachCell((flag, p) => {
