@@ -37,7 +37,7 @@ export class Solver {
 
     do {
       step = this.step();
-      if (step > max) max = step;
+      if (step != null && step > max) max = step;
     } while (step != null);
 
     return max == this.game.guessLevel && this.game.checkWin() ? start : null;
@@ -72,6 +72,47 @@ export class Solver {
       });
     });
     return stepped;
+  }
+
+  mineCount(constraints: Constraint[]) {
+    let remainingMines = this.game.mineCount;
+    let remainingWalls = 0;
+
+    this.game.board.forEachCell((n) => {
+      if (this.game.guessLevel === GuessLevel.Hard) {
+        if (n === FLAG) remainingMines--;
+        if (n === WALL) remainingWalls++;
+      }
+    });
+
+    let max = -1;
+    let maxSet: Constraint[];
+
+    constraints.forEach((c) => {
+      const set = [c];
+
+      constraints.forEach((d) => {
+        if (!set.some((s) => d.pos.some((p) => s.pos.some((q) => p.equals(q)))))
+          set.push(d);
+      });
+
+      const val = set.reduce((sum, { count }) => sum + count, 0);
+      if (val > max) {
+        maxSet = set;
+        max = val;
+      }
+    });
+
+    if (max == remainingMines) {
+      const maxPos = maxSet.flatMap(({ pos }) => pos);
+      if (maxPos.length < remainingWalls) {
+        this.game.board.forEachCell((n, p) => {
+          if (n === WALL && !maxPos.some((q) => p.equals(q))) this.game.open(p);
+        });
+        return true;
+      }
+    }
+    return false;
   }
 
   step(): GuessLevel | null {
@@ -126,6 +167,11 @@ export class Solver {
     if (stepped || this.game.guessLevel === GuessLevel.Medium)
       return stepped ? GuessLevel.Medium : null;
 
+    stepped = this.mineCount(constraints);
+
+    if (stepped) return GuessLevel.Hard;
+
+    // Calculate intermediary constraints
     let added;
     do {
       added = false;
@@ -151,6 +197,12 @@ export class Solver {
       );
     } while (added);
 
-    return this.stepConstraints(constraints) ? GuessLevel.Hard : null;
+    stepped = this.stepConstraints(constraints);
+
+    if (stepped) return GuessLevel.Hard;
+
+    stepped = this.mineCount(constraints);
+
+    return stepped ? GuessLevel.Hard : null;
   }
 }
