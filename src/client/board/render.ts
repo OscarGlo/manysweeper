@@ -97,6 +97,21 @@ function drawCounter(
   }
 }
 
+function drawTilePos(game: GameState, skin: Skin, pos: Vector): Vector {
+  const tilePos = pos.times(TILE_SIZE);
+  if (game.type === MatrixType.HEX) {
+    if (Math.abs(pos.y % 2) === 1) tilePos.x += TILE_SIZE / 2;
+    tilePos.y = Math.floor(tilePos.y * 0.875);
+  }
+  tilePos.add(
+    new Vector(
+      skin.frame.left * skin.frame.scale,
+      skin.frame.top * skin.frame.scale,
+    ).times(GUI_SCALE),
+  );
+  return tilePos;
+}
+
 export function getResetPosSize(
   canvas: HTMLCanvasElement,
   skin: Skin,
@@ -121,35 +136,6 @@ export function draw(
 
   ctx.imageSmoothingEnabled = false;
 
-  // skin.frame
-  skin.frame.draw(
-    ctx,
-    new Vector(0, 0),
-    new Vector(canvas.width, canvas.height),
-    skin.frame.scale * GUI_SCALE,
-  );
-
-  // GUI
-  const flagCount = game.board.arr.reduce(
-    (acc, s) => acc + (s === 10 ? 1 : 0),
-    0,
-  );
-  drawCounter(ctx, skin, skin.minesPos, game.mineCount - flagCount, 3);
-
-  drawCounter(ctx, skin, skin.timerPos, game.timer.time, 3);
-
-  skin.button.drawTile(
-    ctx,
-    game.loading
-      ? new Vector(3, 0)
-      : game.win
-        ? new Vector(2, 0)
-        : game.loserId != null
-          ? new Vector(1, 0)
-          : new Vector(0, 0),
-    ...getResetPosSize(canvas, skin),
-  );
-
   const chorded =
     game.clickedTile != null && game.board.get(game.clickedTile) < WALL;
 
@@ -161,21 +147,32 @@ export function draw(
   const aspectRatio = tileset.tileSize.y / tileset.tileSize.x;
   const tileSize = new Vector(TILE_SIZE, TILE_SIZE * aspectRatio);
 
+  if (game.type === MatrixType.HEX) {
+    for (let x = -1; x <= game.width; x++) {
+      for (const y of [-1, game.height])
+        tileset.drawTile(
+          ctx,
+          new Vector(1, 0),
+          drawTilePos(game, skin, new Vector(x, y)),
+          tileSize,
+        );
+    }
+
+    for (let y = -1; y <= game.height; y++) {
+      for (const x of [-1, game.width])
+        tileset.drawTile(
+          ctx,
+          new Vector(1, 0),
+          drawTilePos(game, skin, new Vector(x, y)),
+          tileSize,
+        );
+    }
+  }
+
   // Board
   game.board.forEachCell((n, pos) => {
     const isMine = game.mines?.get(pos) ?? false;
-
-    const tilePos = pos.times(TILE_SIZE);
-    if (game.type === MatrixType.HEX) {
-      if (pos.y % 2 === 1) tilePos.x += TILE_SIZE / 2;
-      tilePos.y = Math.floor(tilePos.y * 0.875);
-    }
-    tilePos.add(
-      new Vector(
-        skin.frame.left * skin.frame.scale,
-        skin.frame.top * skin.frame.scale,
-      ).times(GUI_SCALE),
-    );
+    const tilePos = drawTilePos(game, skin, pos);
 
     const clicked =
       n === WALL &&
@@ -227,6 +224,34 @@ export function draw(
       tileset.drawTile(ctx, new Vector(n + 6, 0), tilePos, tileSize);
     }
   });
+
+  skin.frame.draw(
+    ctx,
+    new Vector(0, 0),
+    new Vector(canvas.width, canvas.height),
+    skin.frame.scale * GUI_SCALE,
+  );
+
+  // GUI
+  const flagCount = game.board.arr.reduce(
+    (acc, s) => acc + (s === 10 ? 1 : 0),
+    0,
+  );
+  drawCounter(ctx, skin, skin.minesPos, game.mineCount - flagCount, 3);
+
+  drawCounter(ctx, skin, skin.timerPos, game.timer.time, 3);
+
+  skin.button.drawTile(
+    ctx,
+    game.loading
+      ? new Vector(3, 0)
+      : game.win
+        ? new Vector(2, 0)
+        : game.loserId != null
+          ? new Vector(1, 0)
+          : new Vector(0, 0),
+    ...getResetPosSize(canvas, skin),
+  );
 }
 
 export function drawCursors(
