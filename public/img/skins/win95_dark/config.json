@@ -23,6 +23,7 @@
     "right": 8
   },
   "variants": [
-    "hex"
+    "hex",
+    "tri"
   ]
 }

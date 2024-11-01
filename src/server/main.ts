@@ -58,7 +58,7 @@ export const rooms: Record<number, Room> = {
     width: 30,
     height: 16,
     mines: 99,
-    type: MatrixType.SQUARE,
+    type: MatrixType.TRI,
     guessLevel: GuessLevel.None,
   }),
   1: new Room({
@@ -249,39 +249,25 @@ wss.on("connection", (ws, req) => {
       } else {
         if (borders.length === 0) return;
 
-        let minX = x as number,
-          minY = y as number,
-          maxX = x as number,
-          maxY = y as number;
-        for (const pos of borders.flat()) {
-          if (pos.x < minX) minX = x;
-          if (pos.x > maxX) maxX = x;
-          if (pos.y < minY) minY = y;
-          if (pos.y > maxY) maxY = y;
-        }
-        const dx = maxX - minX;
-        const dy = maxY - minY;
-        if (
-          (dx === 2 || (dx === 1 && (minX === 0 || maxX === game.width - 1))) &&
-          (dy === 2 || (dy === 1 && (minY === 0 || maxY === game.width - 1)))
-        ) {
-          const cx = dx === 2 ? minX + 1 : minX === 0 ? minX : maxX;
-          const cy = dy === 2 ? minY + 1 : minY === 0 ? minY : maxY;
+        if (borders.flat().every((b) => game.board.neighbour(pos, b))) {
           const tiles = [];
           game.board.forEachNeighbor(
             pos,
             (state, p) => {
-              tiles.push(state != null && state < 8 ? game.counts.get(p) : 0);
+              tiles.push(
+                state != null && state < WALL ? game.counts.get(p) : 0,
+              );
             },
             true,
           );
-          broadcast(id, [MessageType.CHORD, cx, cy, tiles]);
+          console.log(tiles);
+          broadcast(id, [MessageType.CHORD, x, y, tiles]);
         } else {
           const tiles = [];
           game.board.forEachNeighbor(
             pos,
             (state, p) => {
-              tiles.push(state && state < 8 ? game.counts.get(p) : 0);
+              tiles.push(state && state < WALL ? game.counts.get(p) : 0);
             },
             true,
           );
@@ -326,7 +312,7 @@ wss.on("connection", (ws, req) => {
       // Toggle flag
       const flagId = roomId + pos.toString();
       if (
-        state > 8 &&
+        state >= WALL &&
         (user.id === game.flags.get(pos)[0] || flagDelay[flagId] == null)
       ) {
         const flag = state === WALL;

@@ -37,7 +37,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     time: 8,
     width: 7,
     height: 7,
-    tileType: 1,
+    tileType: 2,
     guessLevel: 2,
     hasStart: 1,
     startX: 7,
@@ -56,7 +56,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   [MessageType.DISCONNECT]: { id: 8 },
   [MessageType.CURSOR]: { x: 12, y: 12, id: 8 },
   [MessageType.TILE]: { x: 8, y: 8, tile: 4 },
-  [MessageType.CHORD]: { x: 8, y: 8, tiles: [3] },
+  [MessageType.CHORD]: { x: 8, y: 8, tiles: [4] },
   [MessageType.HOLE]: {
     clickX: 8,
     clickY: 8,

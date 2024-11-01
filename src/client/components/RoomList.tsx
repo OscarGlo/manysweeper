@@ -27,6 +27,7 @@ import { post } from "../util/post";
 import { MatrixType } from "../../util/Matrix";
 import Square from "@mui/icons-material/SquareOutlined";
 import Hexagon from "@mui/icons-material/HexagonOutlined";
+import Triangle from "@mui/icons-material/ChangeHistory";
 import { GuessLevel } from "../../model/GameState";
 
 export interface ShapeIconProps extends SvgIconProps {
@@ -36,6 +37,7 @@ export interface ShapeIconProps extends SvgIconProps {
 const shapeIcons = {
   [MatrixType.SQUARE]: Square,
   [MatrixType.HEX]: Hexagon,
+  [MatrixType.TRI]: Triangle,
 };
 
 export function ShapeIcon({

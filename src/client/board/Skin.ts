@@ -8,6 +8,8 @@ export class Skin extends EventEmitter {
 
   tiles: AtlasTexture;
   tilesHex?: AtlasTexture;
+  tilesTri?: AtlasTexture;
+  tilesTri2?: AtlasTexture;
   frame: NineSliceTexture;
   counter: NineSliceTexture;
   counterNumbers: AtlasTexture;
@@ -24,6 +26,8 @@ export class Skin extends EventEmitter {
   }
 
   get loaded(): boolean {
+    if (this.loading) return false;
+
     const toLoad = [
       this.tiles,
       this.frame,
@@ -32,22 +36,35 @@ export class Skin extends EventEmitter {
       this.button,
     ];
     if (this.tilesHex != null) toLoad.push(this.tilesHex);
+    if (this.tilesTri != null) toLoad.push(this.tilesTri, this.tilesTri2);
 
     return toLoad.every((s) => s.img.complete);
   }
 
   async load(name: string) {
     this.name = name;
+    this.loading = true;
 
     const config = await fetch(`/img/skins/${name}/config.json`).then((res) =>
       res.json(),
     );
 
     this.tiles = new AtlasTexture(`/img/skins/${name}/tiles.png`, 1, 15);
+
     this.tilesHex =
       config.variants && config.variants.includes("hex")
         ? new AtlasTexture(`/img/skins/${name}/tiles_hex.png`, 1, 13)
         : null;
+
+    this.tilesTri =
+      config.variants && config.variants.includes("tri")
+        ? new AtlasTexture(`/img/skins/${name}/tiles_tri.png`, 1, 19)
+        : null;
+    this.tilesTri2 =
+      config.variants && config.variants.includes("tri")
+        ? new AtlasTexture(`/img/skins/${name}/tiles_tri2.png`, 1, 19)
+        : null;
+
     this.frame = new NineSliceTexture(
       `/img/skins/${name}/frame.png`,
       config.frame.top,
@@ -75,12 +92,19 @@ export class Skin extends EventEmitter {
     );
     this.button = new AtlasTexture(`/img/skins/${name}/button.png`, 1, 4);
 
+    this.loading = false;
+
     const onLoad = () => {
-      if (this.loaded) this.emit("load");
+      if (this.loaded) {
+        this.emit("load");
+      }
     };
 
     onLoad();
     this.tiles.img.addEventListener("load", onLoad);
+    this.tilesHex?.img?.addEventListener("load", onLoad);
+    this.tilesTri?.img?.addEventListener("load", onLoad);
+    this.tilesTri2?.img?.addEventListener("load", onLoad);
     this.frame.img.addEventListener("load", onLoad);
     this.counter.img.addEventListener("load", onLoad);
     this.counterNumbers.img.addEventListener("load", onLoad);

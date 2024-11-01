@@ -278,6 +278,7 @@ export function CreateRoomDialog({
                 >
                   <MenuItem value={MatrixType.SQUARE}>Square</MenuItem>
                   <MenuItem value={MatrixType.HEX}>Hexagonal</MenuItem>
+                  <MenuItem value={MatrixType.TRI}>Triangular</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

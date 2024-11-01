@@ -9,10 +9,8 @@ import { shuffle } from "../util/util";
 import { Solver } from "./Solver";
 import { EventEmitter } from "events";
 
-export const WALL = 9;
-export const FLAG = 10;
-
-export type State = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export const WALL = 13;
+export const FLAG = 14;
 
 export type Border = Vector[];
 
@@ -52,7 +50,7 @@ export class GameState extends EventEmitter {
   type: MatrixType;
   guessLevel: GuessLevel;
 
-  board: Matrix<State>;
+  board: Matrix<number>;
   flags: Matrix<[number, number]>;
 
   mines?: Matrix<boolean>;

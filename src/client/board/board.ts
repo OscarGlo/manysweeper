@@ -12,7 +12,6 @@ import {
   FLAG,
   GameState,
   GuessLevel,
-  State,
   WALL,
 } from "../../model/GameState";
 import { throttled } from "../../util/util";
@@ -121,14 +120,13 @@ export function onActionUp(
     const state = game.board.get(tilePos);
     if (
       state === 0 ||
-      state === 8 ||
-      (state < 8 && action === Action.FLAG) ||
+      (state < WALL && action === Action.FLAG) ||
       (state === WALL && action === Action.CHORD) ||
       (state === FLAG && (action !== Action.FLAG || game.win))
     )
       sendMessage = false;
 
-    if (sendMessage && state < 8) {
+    if (sendMessage && state < WALL) {
       let chord = false;
       let count = 0;
       game.board.forEachNeighbor(tilePos, (s) => {
@@ -249,11 +247,11 @@ export async function messageListener(
       game.board.set(pos, (msg.tile as number) ?? 0);
       break;
 
-    case MessageType.CHORD:
+    case MessageType.CHORD: {
       game.clickedTile = undefined;
       game.timer.start();
-      // eslint-disable-next-line no-case-declarations
       let i = 0;
+      console.log(msg.tiles);
       game.board.forEachNeighbor(
         pos,
         (state, p) => {
@@ -264,6 +262,7 @@ export async function messageListener(
         true,
       );
       break;
+    }
 
     case MessageType.HOLE:
       game.clickedTile = undefined;
@@ -277,7 +276,7 @@ export async function messageListener(
         game.flags.width,
         game.flags.height,
         game.type,
-        msg.tiles as State[],
+        msg.tiles as number[],
       );
       break;
 

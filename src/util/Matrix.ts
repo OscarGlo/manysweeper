@@ -3,6 +3,7 @@ import { Vector } from "./Vector";
 export enum MatrixType {
   SQUARE,
   HEX,
+  TRI,
 }
 
 export class Matrix<T> {
@@ -68,11 +69,27 @@ export class Matrix<T> {
   }
 
   getTilePos(mousePos: Vector) {
+    mousePos = new Vector(mousePos);
+
     if (this.type === MatrixType.HEX) {
       mousePos.y = mousePos.y / 0.875 - 0.1;
       if (mousePos.y % 2 >= 1) {
         mousePos.x -= 0.5;
       }
+    }
+    if (this.type === MatrixType.TRI) {
+      mousePos.y /= 1.125;
+
+      const fy = Math.floor(mousePos.y);
+      const xOff = fy % 2 === 0 ? 1 : 0;
+
+      const dy = mousePos.y - fy;
+      mousePos.x = (mousePos.x / 0.69 - 0.7 * dy - xOff) / 2;
+
+      const fx = Math.floor(mousePos.x);
+      const dx = mousePos.x - fx;
+      mousePos.x = fx * 2 + xOff;
+      if (dy + dx > 1) mousePos.x += 1;
     }
     return mousePos.floor();
   }
@@ -84,6 +101,8 @@ export class Matrix<T> {
   }
 
   adjacent(u: Vector, v: Vector): boolean {
+    const sameRow = u.y === v.y && Math.abs(u.x - v.x) === 1;
+
     switch (this.type) {
       case MatrixType.SQUARE:
         return u.hamming(v) == 1;
@@ -91,9 +110,17 @@ export class Matrix<T> {
       case MatrixType.HEX:
         return (
           Math.abs(u.y - v.y) <= 1 &&
-          ((u.y === v.y && Math.abs(u.x - v.x) === 1) ||
+          (sameRow ||
             (u.y % 2 === 0 && (v.x === u.x - 1 || v.x === u.x)) ||
             (u.y % 2 === 1 && (v.x === u.x || v.x === u.x + 1)))
+        );
+
+      case MatrixType.TRI:
+        return (
+          sameRow ||
+          (v.x === u.x &&
+            ((u.y % 2 === u.x % 2 && v.y === u.y + 1) ||
+              (u.y % 2 !== u.x % 2 && v.y === u.y - 1)))
         );
     }
   }
@@ -105,7 +132,54 @@ export class Matrix<T> {
 
       case MatrixType.HEX:
         return this.adjacent(u, v);
+
+      case MatrixType.TRI: {
+        const xOff = Math.abs(u.x - v.x);
+        return (
+          (u.y === v.y && xOff <= 2) ||
+          (u.y % 2 === u.x % 2 &&
+            ((v.y === u.y + 1 && xOff <= 2) ||
+              (v.y === u.y - 1 && xOff <= 1))) ||
+          (u.y % 2 !== u.x % 2 &&
+            ((v.y === u.y + 1 && xOff <= 1) || (v.y === u.y - 1 && xOff <= 2)))
+        );
+      }
     }
+  }
+
+  forEachRange(
+    pos: Vector,
+    dx: number,
+    dy: number,
+    fn: (t: T | undefined, p: Vector) => void,
+    keepOutOfBounds: boolean = false,
+  ) {
+    for (let x = pos.x - dx; x <= pos.x + dx; x++) {
+      for (let y = pos.y - dy; y <= pos.y + dy; y++) {
+        const p = new Vector(x, y);
+        if (
+          (x !== pos.x || y !== pos.y) &&
+          (keepOutOfBounds || this.inBounds(p))
+        )
+          fn(this.get(p), p);
+      }
+    }
+  }
+
+  forEachAdjacent(
+    pos: Vector,
+    fn: (t: T | undefined, p: Vector) => void,
+    keepOutOfBounds: boolean = false,
+  ) {
+    this.forEachRange(
+      pos,
+      1,
+      1,
+      (v, p) => {
+        if (this.adjacent(pos, p)) fn(v, p);
+      },
+      keepOutOfBounds,
+    );
   }
 
   forEachNeighbor(
@@ -113,16 +187,14 @@ export class Matrix<T> {
     fn: (t: T | undefined, p: Vector) => void,
     keepOutOfBounds: boolean = false,
   ) {
-    for (let x = pos.x - 1; x <= pos.x + 1; x++) {
-      for (let y = pos.y - 1; y <= pos.y + 1; y++) {
-        const p2 = new Vector(x, y);
-        if (
-          (x !== pos.x || y !== pos.y) &&
-          (keepOutOfBounds || this.inBounds(x, y)) &&
-          this.neighbour(pos, p2)
-        )
-          fn(this.get(x, y), p2);
-      }
-    }
+    this.forEachRange(
+      pos,
+      2,
+      1,
+      (v, p) => {
+        if (this.neighbour(pos, p)) fn(v, p);
+      },
+      keepOutOfBounds,
+    );
   }
 }

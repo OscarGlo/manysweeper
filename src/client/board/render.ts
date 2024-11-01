@@ -5,6 +5,7 @@ import { Skin } from "./Skin";
 import { boardOffset, cursorOffset } from "./board";
 import { Position } from "../../util/Position";
 import { MatrixType } from "../../util/Matrix";
+import { AtlasTexture } from "./Texture";
 
 export const GUI_SCALE = 2;
 export const TILE_SIZE = 32;
@@ -18,6 +19,10 @@ export function getBoardSize(game: GameState): Vector {
   if (game.type === MatrixType.HEX) {
     base.x += TILE_SIZE / 2 + 2;
     base.y = base.y * 0.875 + 9;
+  }
+  if (game.type === MatrixType.TRI) {
+    base.x = base.x * 0.708;
+    base.y *= 1.125;
   }
   return base;
 }
@@ -97,18 +102,39 @@ function drawCounter(
   }
 }
 
-function drawTilePos(game: GameState, skin: Skin, pos: Vector): Vector {
-  const tilePos = pos.times(TILE_SIZE);
-  if (game.type === MatrixType.HEX) {
-    if (Math.abs(pos.y % 2) === 1) tilePos.x += TILE_SIZE / 2;
-    tilePos.y = Math.floor(tilePos.y * 0.875);
+function getTileset(game: GameState, skin: Skin, pos: Vector): AtlasTexture {
+  if (game.type === MatrixType.HEX && skin.tilesHex != null) {
+    return skin.tilesHex;
+  } else if (game.type === MatrixType.TRI && skin.tilesTri != null) {
+    if (Math.abs(pos.x % 2) === Math.abs(pos.y % 2)) return skin.tilesTri;
+    else return skin.tilesTri2;
   }
-  tilePos.add(
-    new Vector(
-      skin.frame.left * skin.frame.scale,
-      skin.frame.top * skin.frame.scale,
-    ).times(GUI_SCALE),
-  );
+  return skin.tiles;
+}
+
+function drawTilePos(
+  game: GameState,
+  skin: Skin,
+  pos: Vector,
+  tileSize: Vector,
+): Vector {
+  let tilePos = pos.times(tileSize);
+  if (game.type === MatrixType.HEX) {
+    if (Math.abs(pos.y % 2) === 1) tilePos.x += tileSize.x / 2;
+    tilePos.y = tilePos.y * 0.77;
+  }
+  if (game.type === MatrixType.TRI) {
+    tilePos.x = tilePos.x * 0.579;
+    if (pos.x < 0) tilePos.x += TILE_SIZE * 0.01;
+  }
+  tilePos = tilePos
+    .floor()
+    .plus(
+      new Vector(
+        skin.frame.left * skin.frame.scale,
+        skin.frame.top * skin.frame.scale,
+      ).times(GUI_SCALE),
+    );
   return tilePos;
 }
 
@@ -139,40 +165,47 @@ export function draw(
   const chorded =
     game.clickedTile != null && game.board.get(game.clickedTile) < WALL;
 
-  const tileset =
-    game.type === MatrixType.HEX && skin.tilesHex != null
-      ? skin.tilesHex
-      : skin.tiles;
-
-  const aspectRatio = tileset.tileSize.y / tileset.tileSize.x;
-  const tileSize = new Vector(TILE_SIZE, TILE_SIZE * aspectRatio);
-
   if (game.type === MatrixType.HEX) {
     for (let x = -1; x <= game.width; x++) {
-      for (const y of [-1, game.height])
-        tileset.drawTile(
-          ctx,
-          new Vector(1, 0),
-          drawTilePos(game, skin, new Vector(x, y)),
-          tileSize,
-        );
-    }
+      for (const y of [-1, game.height]) {
+        const pos = new Vector(x, y);
+        const tileset = getTileset(game, skin, pos);
+        const tileSize = tileset.tileSize.times(TILE_SIZE / 16);
 
-    for (let y = -1; y <= game.height; y++) {
-      for (const x of [-1, game.width])
         tileset.drawTile(
           ctx,
           new Vector(1, 0),
-          drawTilePos(game, skin, new Vector(x, y)),
+          drawTilePos(game, skin, pos, tileSize),
           tileSize,
         );
+      }
+    }
+  }
+
+  if (game.type === MatrixType.HEX || game.type === MatrixType.TRI) {
+    for (let y = -1; y <= game.height; y++) {
+      for (const x of [-1, game.width]) {
+        const pos = new Vector(x, y);
+        const tileset = getTileset(game, skin, pos);
+        const tileSize = tileset.tileSize.times(TILE_SIZE / 16);
+
+        tileset.drawTile(
+          ctx,
+          new Vector(1, 0),
+          drawTilePos(game, skin, new Vector(x, y), tileSize),
+          tileSize,
+        );
+      }
     }
   }
 
   // Board
   game.board.forEachCell((n, pos) => {
+    const tileset = getTileset(game, skin, pos);
+    const tileSize = tileset.tileSize.times(TILE_SIZE / 16);
+
     const isMine = game.mines?.get(pos) ?? false;
-    const tilePos = drawTilePos(game, skin, pos);
+    const tilePos = drawTilePos(game, skin, pos, tileSize);
 
     const clicked =
       n === WALL &&
