@@ -58,7 +58,7 @@ export const rooms: Record<number, Room> = {
     width: 30,
     height: 16,
     mines: 99,
-    type: MatrixType.TRI,
+    type: MatrixType.SQUARE,
     guessLevel: GuessLevel.None,
   }),
   1: new Room({
@@ -260,7 +260,6 @@ wss.on("connection", (ws, req) => {
             },
             true,
           );
-          console.log(tiles);
           broadcast(id, [MessageType.CHORD, x, y, tiles]);
         } else {
           const tiles = [];

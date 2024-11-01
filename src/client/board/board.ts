@@ -251,7 +251,6 @@ export async function messageListener(
       game.clickedTile = undefined;
       game.timer.start();
       let i = 0;
-      console.log(msg.tiles);
       game.board.forEachNeighbor(
         pos,
         (state, p) => {
