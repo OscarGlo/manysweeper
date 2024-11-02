@@ -257,6 +257,7 @@ export async function messageListener(
     case MessageType.CHORD: {
       game.clickedTile = undefined;
       game.timer.start();
+      if (game.board.get(pos) === WALL) game.board.set(pos, 0);
       let i = 0;
       game.board.forEachNeighbor(
         pos,
