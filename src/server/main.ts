@@ -249,29 +249,17 @@ wss.on("connection", (ws, req) => {
       } else {
         if (borders.length === 0) return;
 
-        if (borders.flat().every((b) => game.board.neighbour(pos, b))) {
-          const tiles = [];
-          game.board.forEachNeighbor(
-            pos,
-            (state, p) => {
-              tiles.push(
-                state != null && state < WALL ? game.counts.get(p) : 0,
-              );
-            },
-            true,
-          );
-          broadcast(id, [MessageType.CHORD, x, y, tiles]);
-        } else {
-          const tiles = [];
-          game.board.forEachNeighbor(
-            pos,
-            (state, p) => {
-              tiles.push(state && state < WALL ? game.counts.get(p) : 0);
-            },
-            true,
-          );
-          broadcast(id, [MessageType.CHORD, x, y, tiles]);
+        const tiles = [];
+        game.board.forEachNeighbor(
+          pos,
+          (state, p) => {
+            tiles.push(state ? game.board.get(p) : 0);
+          },
+          true,
+        );
+        broadcast(id, [MessageType.CHORD, x, y, tiles]);
 
+        if (!borders.flat().every((b) => game.board.neighbour(pos, b))) {
           const tileBorders = borders.filter(
             (b) =>
               b.length === 1 &&
