@@ -267,7 +267,7 @@ export function draw(
 
   // GUI
   const flagCount = game.board.arr.reduce(
-    (acc, s) => acc + (s === 10 ? 1 : 0),
+    (acc, s) => acc + (s === FLAG ? 1 : 0),
     0,
   );
   drawCounter(ctx, skin, skin.minesPos, game.mineCount - flagCount, 3);
