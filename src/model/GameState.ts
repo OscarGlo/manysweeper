@@ -22,6 +22,7 @@ export enum GuessLevel {
 }
 
 export enum ChatMessageType {
+  INIT,
   MESSAGE,
   JOIN,
   LEAVE,
@@ -34,6 +35,7 @@ export interface ChatMessage {
   user?: UserConnection;
   message?: string;
   oldUser?: UserConnection;
+  users?: UserConnection[];
 }
 
 export class GameState extends EventEmitter {

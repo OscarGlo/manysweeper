@@ -183,6 +183,11 @@ export async function messageListener(
       game.startPos = msg.hasStart
         ? new Vector(msg.startX as number, msg.startY as number)
         : null;
+
+      game.chat.push({
+        type: ChatMessageType.INIT,
+        users: Object.values(game.users).filter((u) => u.id !== msg.id),
+      });
       break;
 
     case MessageType.USER: {
@@ -203,21 +208,23 @@ export async function messageListener(
           ...data,
         };
 
-        game.chat.push({
-          user: game.users[msg.id as number],
-          oldUser,
-          type: ChatMessageType.UPDATE,
-        });
+        if (game.init)
+          game.chat.push({
+            user: game.users[msg.id as number],
+            oldUser,
+            type: ChatMessageType.UPDATE,
+          });
       } else {
         game.users[msg.id as number] = {
           id: msg.id as number,
           ...data,
         };
 
-        game.chat.push({
-          user: game.users[msg.id as number],
-          type: ChatMessageType.JOIN,
-        });
+        if (game.init)
+          game.chat.push({
+            user: game.users[msg.id as number],
+            type: ChatMessageType.JOIN,
+          });
       }
       break;
     }

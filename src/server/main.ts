@@ -160,6 +160,14 @@ wss.on("connection", (ws, req) => {
     color: Color.hex(cookies.color ?? colors[name]),
   };
 
+  game.users[user.id] = user;
+  broadcast(id, userMessageData(user), ws);
+
+  Object.values(game.users).forEach((user) => {
+    send(userMessageData(user));
+    if (user.cursorPos)
+      send([MessageType.CURSOR, user.cursorPos.x, user.cursorPos.y, user.id]);
+  });
   send([
     MessageType.INIT,
     user.id,
@@ -177,11 +185,6 @@ wss.on("connection", (ws, req) => {
   ]);
   // TODO Merge INIT and BOARD
   send([MessageType.BOARD, game.board.arr]);
-  Object.values(game.users).forEach((user) => {
-    send(userMessageData(user));
-    if (user.cursorPos)
-      send([MessageType.CURSOR, user.cursorPos.x, user.cursorPos.y, user.id]);
-  });
   Object.entries(game.colors).forEach(([id, color]) => {
     send([MessageType.COLOR, id, color.h, color.s, color.l]);
   });
@@ -191,9 +194,6 @@ wss.on("connection", (ws, req) => {
   else if (game.win) send([MessageType.WIN]);
 
   if (game.loading) send([MessageType.LOADING]);
-
-  game.users[user.id] = user;
-  broadcast(id, userMessageData(user));
 
   room.on("generated", () => reset(id));
 

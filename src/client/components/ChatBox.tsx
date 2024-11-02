@@ -12,6 +12,15 @@ import { WebSocketContext } from "../contexts/WebSocket";
 import { MessageType, serializeMessage } from "../../model/messages";
 import { useInterval } from "../hooks/useInterval";
 import { ChatMessageType } from "../../model/GameState";
+import { UserConnection } from "../../model/UserConnection";
+
+export function UserName({ user }: { user: UserConnection }) {
+  return (
+    <Typography component="span" color={user.color.hex} fontWeight="bold">
+      {user.username}
+    </Typography>
+  );
+}
 
 export function ChatBox(): React.ReactElement {
   const { websocket } = useContext(WebSocketContext);
@@ -95,27 +104,26 @@ export function ChatBox(): React.ReactElement {
                   msg.type === ChatMessageType.MESSAGE ? undefined : "gray"
                 }
               >
+                {msg.users ? (
+                  <>
+                    Joined the room.{" "}
+                    {msg.users.length ? "Connected users:" : ""}
+                    {msg.users.map((u, i, a) => (
+                      <>
+                        {" "}
+                        <UserName user={u} />
+                        {i < a.length - 1 ? "," : ""}
+                      </>
+                    ))}
+                  </>
+                ) : null}
                 {msg.oldUser ? (
                   <>
-                    <Typography
-                      component="span"
-                      color={msg.oldUser.color.hex}
-                      fontWeight="bold"
-                    >
-                      {msg.oldUser.username}
-                    </Typography>
+                    <UserName user={msg.oldUser} />
                     {" was updated to "}
                   </>
                 ) : null}
-                {msg.user ? (
-                  <Typography
-                    component="span"
-                    color={msg.user.color.hex}
-                    fontWeight="bold"
-                  >
-                    {msg.user.username}
-                  </Typography>
-                ) : null}
+                {msg.user ? <UserName user={msg.user} /> : null}
                 {msg.message
                   ? msg.type === ChatMessageType.LOG
                     ? msg.message
@@ -124,7 +132,9 @@ export function ChatBox(): React.ReactElement {
                     ? ` joined the room.`
                     : msg.type === ChatMessageType.LEAVE
                       ? ` left the room.`
-                      : "."}
+                      : msg.type === ChatMessageType.UPDATE
+                        ? "."
+                        : ""}
               </Typography>
             ))}
           </Stack>
