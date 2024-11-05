@@ -29,6 +29,7 @@ export class Room extends EventEmitter {
       options.mines,
       options.type,
       options.guessLevel,
+      options.gamemode,
     );
   }
 }

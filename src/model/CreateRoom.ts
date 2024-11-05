@@ -1,5 +1,5 @@
 import { MatrixType } from "../util/Matrix";
-import { GuessLevel } from "./GameState";
+import { Gamemode, GuessLevel } from "./GameState";
 
 export interface CreateRoom {
   name: string;
@@ -10,4 +10,5 @@ export interface CreateRoom {
   mines: number;
   type: MatrixType;
   guessLevel: GuessLevel;
+  gamemode: Gamemode;
 }

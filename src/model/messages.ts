@@ -39,6 +39,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
     height: 7,
     tileType: 2,
     guessLevel: 2,
+    gamemode: 1,
     hasStart: 1,
     startX: 7,
     startY: 7,
@@ -47,6 +48,7 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   },
   [MessageType.USER]: {
     id: 8,
+    score: 8,
     hue: 10,
     saturation: 7,
     lightness: 7,

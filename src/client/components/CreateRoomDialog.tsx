@@ -21,7 +21,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import LockIcon from "@mui/icons-material/Lock";
 import { CreateRoom } from "../../model/CreateRoom";
 import { CookiesContext } from "../contexts/Cookies";
-import { GameState, GuessLevel } from "../../model/GameState";
+import { Gamemode, GameState, GuessLevel } from "../../model/GameState";
 import { Room } from "../../model/Room";
 import { MatrixType } from "../../util/Matrix";
 
@@ -55,6 +55,8 @@ export function CreateRoomDialog({
   const [level, setLevel] = useState(Level.EXPERT);
   const [type, setType] = useState(MatrixType.SQUARE);
   const [guessLevel, setGuessLevel] = useState(GuessLevel.None);
+  const [gamemode, setGamemode] = useState(Gamemode.COOP);
+  const [ngDisabled, setNgDisabled] = useState(false);
 
   const updateDifficulty = useCallback(
     (level: Level) => {
@@ -95,6 +97,7 @@ export function CreateRoomDialog({
             mines,
             type,
             guessLevel,
+            gamemode,
           });
           props.onClose();
         }}
@@ -142,6 +145,31 @@ export function CreateRoomDialog({
               onChange={(evt) => setPassword(evt.target.value || undefined)}
             />
           </Stack>
+
+          <Grid container spacing={2} width="100%">
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>Game mode</InputLabel>
+                <Select
+                  size="small"
+                  label="Game mode"
+                  value={gamemode}
+                  onChange={(evt) => {
+                    const mode = evt.target.value as Gamemode;
+                    setGamemode(mode);
+
+                    setNgDisabled(mode !== Gamemode.COOP);
+                    if (mode !== Gamemode.COOP) {
+                      setGuessLevel(GuessLevel.None);
+                    }
+                  }}
+                >
+                  <MenuItem value={Gamemode.COOP}>Cooperative</MenuItem>
+                  <MenuItem value={Gamemode.FLAGS}>Flags Versus</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
 
           <Box>
             <Typography fontSize="medium" fontWeight="bold">
@@ -258,6 +286,7 @@ export function CreateRoomDialog({
                   onChange={(evt) =>
                     setGuessLevel(evt.target.value as GuessLevel)
                   }
+                  disabled={ngDisabled}
                 >
                   <MenuItem value={GuessLevel.None}>None (random)</MenuItem>
                   <MenuItem value={GuessLevel.Easy}>Easy</MenuItem>
