@@ -12,7 +12,14 @@ import {
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
-import { Border, FLAG, GameState, GuessLevel, WALL } from "../model/GameState";
+import {
+  Border,
+  FLAG,
+  Gamemode,
+  GameState,
+  GuessLevel,
+  WALL,
+} from "../model/GameState";
 import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
 import { IdGen } from "../util/IdGen";
@@ -60,6 +67,8 @@ export const rooms: Record<number, Room> = {
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.None,
+    // TODO: Change back
+    gamemode: Gamemode.FLAGS,
   }),
   1: new Room({
     name: "Persistent expert (NG)",
@@ -68,6 +77,7 @@ export const rooms: Record<number, Room> = {
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.Hard,
+    gamemode: Gamemode.COOP,
   }),
 };
 
@@ -88,6 +98,7 @@ function userMessageData(user: UserConnection, update: boolean = false) {
   return [
     MessageType.USER,
     user.id,
+    user.score,
     user.color.h,
     user.color.s,
     user.color.l,
@@ -158,6 +169,7 @@ wss.on("connection", (ws, req) => {
     id: game.userIds.get(),
     username: cookies.username?.substring(0, 24) ?? `${name} Guest`,
     color: Color.hex(cookies.color ?? colors[name]),
+    score: 0,
   };
 
   game.users[user.id] = user;
@@ -177,6 +189,7 @@ wss.on("connection", (ws, req) => {
     game.height,
     game.type,
     game.guessLevel,
+    game.gamemode,
     game.startPos != null,
     game.startPos?.x ?? 0,
     game.startPos?.y ?? 0,
@@ -212,17 +225,39 @@ wss.on("connection", (ws, req) => {
       }
       game.timer.start();
 
-      if (state === 0 || state === FLAG) {
+      if (
+        (game.gamemode === Gamemode.FLAGS && state !== WALL) ||
+        state === 0 ||
+        state === FLAG
+      ) {
         return;
       }
 
       if (msg.type === MessageType.TILE) {
-        if (game.firstClick) game.moveFirstMine(pos);
+        if (game.firstClick) {
+          if (game.gamemode !== Gamemode.FLAGS) {
+            game.moveFirstMine(pos);
+          }
+          game.firstClick = false;
+          game.roundPlayers = Object.keys(game.users).map((id) => parseInt(id));
+        }
 
         if (game.mines.get(pos)) {
-          game.board.set(pos, 0);
-          broadcast(id, [MessageType.TILE, x, y]);
-          return fail(id, getColorId(game, user.color, id));
+          if (game.gamemode === Gamemode.FLAGS) {
+            game.board.set(pos, FLAG);
+            user.score++;
+            return broadcast(id, [
+              MessageType.FLAG,
+              x,
+              y,
+              user.id,
+              getColorId(game, user.color, id),
+            ]);
+          } else {
+            game.board.set(pos, 0);
+            broadcast(id, [MessageType.TILE, x, y]);
+            return fail(id, getColorId(game, user.color, id));
+          }
         }
       }
 
@@ -294,7 +329,7 @@ wss.on("connection", (ws, req) => {
         broadcast(id, [MessageType.WIN]);
       }
     } else if (msg.type === MessageType.FLAG) {
-      if (game.loserId != null) return;
+      if (game.loserId != null || game.gamemode === Gamemode.FLAGS) return;
 
       // Toggle flag
       const flagId = roomId + pos.toString();

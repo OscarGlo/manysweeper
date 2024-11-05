@@ -10,6 +10,7 @@ import { Color } from "../../util/Color";
 import {
   ChatMessageType,
   FLAG,
+  Gamemode,
   GameState,
   GuessLevel,
   WALL,
@@ -122,7 +123,9 @@ export function onActionUp(
       state === 0 ||
       (state < WALL && action === Action.FLAG) ||
       (state === WALL && action === Action.CHORD) ||
-      (state === FLAG && (action !== Action.FLAG || game.win))
+      (state === FLAG && (action !== Action.FLAG || game.win)) ||
+      (game.gamemode === Gamemode.FLAGS &&
+        (action !== Action.BREAK || state !== WALL))
     )
       sendMessage = false;
 
@@ -165,6 +168,7 @@ export async function messageListener(
       game.width = msg.width as number;
       game.height = msg.height as number;
       game.type = msg.tileType as MatrixType;
+      game.gamemode = msg.gamemode as Gamemode;
       game.reset();
       game.init = true;
 
@@ -217,6 +221,7 @@ export async function messageListener(
       } else {
         game.users[msg.id as number] = {
           id: msg.id as number,
+          score: msg.score as number,
           ...data,
         };
 
@@ -290,6 +295,14 @@ export async function messageListener(
     case MessageType.FLAG:
       game.flags.set(pos, [msg.id as number, msg.colorId as number]);
       game.board.set(pos, game.board.get(pos) === WALL ? FLAG : WALL);
+
+      if (game.gamemode === Gamemode.FLAGS) {
+        const user = game.users[msg.id as number];
+        game.users[msg.id as number] = {
+          ...user,
+          score: user.score + 1,
+        };
+      }
       break;
 
     case MessageType.WIN:

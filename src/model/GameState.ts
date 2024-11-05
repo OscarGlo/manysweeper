@@ -21,6 +21,11 @@ export enum GuessLevel {
   Hard,
 }
 
+export enum Gamemode {
+  COOP,
+  FLAGS,
+}
+
 export enum ChatMessageType {
   INIT,
   MESSAGE,
@@ -51,6 +56,7 @@ export class GameState extends EventEmitter {
   mineCount: number;
   type: MatrixType;
   guessLevel: GuessLevel;
+  gamemode: Gamemode;
 
   board: Matrix<number>;
   flags: Matrix<[number, number]>;
@@ -71,6 +77,10 @@ export class GameState extends EventEmitter {
   colors: Record<string, Color>;
   colorIds: IdGen;
 
+  // Flags
+  roundPlayers: number[];
+  currentPlayer: number;
+
   holding?: boolean;
   clickedTile?: Vector;
   init: boolean;
@@ -83,6 +93,7 @@ export class GameState extends EventEmitter {
     mineCount: number,
     type: MatrixType,
     guessLevel: GuessLevel,
+    gamemode: Gamemode,
   ) {
     super();
     this.width = Math.max(
@@ -98,7 +109,8 @@ export class GameState extends EventEmitter {
       1,
     );
     this.type = type;
-    this.guessLevel = guessLevel;
+    this.guessLevel = gamemode === Gamemode.COOP ? guessLevel : GuessLevel.None;
+    this.gamemode = gamemode;
 
     this.timer = new Timer({ max: 999 });
     this.users = {};
@@ -119,6 +131,7 @@ export class GameState extends EventEmitter {
       game.mineCount,
       game.type,
       game.guessLevel,
+      game.gamemode,
     );
     newGame.init = game.init;
     newGame.mines = Matrix.copy(game.mines);
@@ -200,8 +213,6 @@ export class GameState extends EventEmitter {
 
       this.countMines();
     }
-
-    this.firstClick = false;
   }
 
   open(pos: Vector): Border[] {

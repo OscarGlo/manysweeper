@@ -28,7 +28,7 @@ import { MatrixType } from "../../util/Matrix";
 import Square from "@mui/icons-material/SquareOutlined";
 import Hexagon from "@mui/icons-material/HexagonOutlined";
 import Triangle from "@mui/icons-material/ChangeHistory";
-import { GuessLevel } from "../../model/GameState";
+import { Gamemode, GuessLevel } from "../../model/GameState";
 
 export interface ShapeIconProps extends SvgIconProps {
   shape: MatrixType;
@@ -55,6 +55,11 @@ export const guessColors = {
   [GuessLevel.Hard]: "#d33",
 };
 
+const gamemodeLabel = {
+  [Gamemode.COOP]: "Co-op",
+  [Gamemode.FLAGS]: "Flags VS",
+};
+
 const columns: GridColDef[] = [
   { field: "id", headerName: "ID", type: "string", width: 70 },
   {
@@ -70,6 +75,13 @@ const columns: GridColDef[] = [
       ),
   },
   { field: "name", headerName: "Name", type: "string", width: 200 },
+  {
+    field: "gamemode",
+    headerName: "Mode",
+    type: "string",
+    width: 100,
+    renderCell: (params) => gamemodeLabel[params.value],
+  },
   {
     field: "board",
     headerName: "Board",
