@@ -17,7 +17,6 @@ import {
 import { throttled } from "../../util/util";
 import { getBoardSize, getResetPosSize, getTilePos, GUI_SCALE } from "./render";
 import { Skin } from "./Skin";
-import React from "react";
 
 function send(ws: WebSocket, data: MessageValue[]) {
   if (ws.readyState === WebSocket.OPEN) ws.send(serializeMessage(data));
@@ -43,10 +42,11 @@ export function getCursorPos(
   canvas: HTMLCanvasElement,
   game: GameState,
   skin: Skin,
-  evt: React.MouseEvent,
+  clientPos: Vector,
 ): Vector {
   const rect = canvas.getBoundingClientRect();
-  return new Vector(evt.clientX - rect.left, evt.clientY - rect.top)
+  return clientPos
+    .minus(new Vector(rect.left, rect.top))
     .plus(cursorOffset(game))
     .minus(boardOffset(skin));
 }
@@ -63,10 +63,10 @@ export function onMouseMove(
   canvas: HTMLCanvasElement,
   game: GameState,
   skin: Skin,
-  evt: React.MouseEvent,
+  clientPos: Vector,
   setCursorPos: (pos: Vector) => void,
 ) {
-  const pos = getCursorPos(canvas, game, skin, evt);
+  const pos = getCursorPos(canvas, game, skin, clientPos);
   setCursorPos(pos);
   const tile = getTilePos(game, pos);
   if (game.holding) updateClickedTile(game, tile);

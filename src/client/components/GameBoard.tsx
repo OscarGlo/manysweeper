@@ -27,6 +27,8 @@ import { Vector } from "../../util/Vector";
 import { MessageType } from "../../model/messages";
 import { GameContext } from "../contexts/Game";
 
+const HOLD_FLAG_TIME = 200;
+
 const Canvas = styled("canvas")({});
 
 const mouseActions = [Action.BREAK, Action.CHORD, Action.FLAG];
@@ -76,6 +78,12 @@ export function GameBoard(): React.ReactElement {
   }
 
   const boardSize = useRef<Vector>();
+
+  const actionUpHandler = (action: Action) =>
+    onActionUp(websocket, cursorPos.current, game, skin, action, layers[1]);
+
+  const mouseMoveHandler = (clientPos: Vector) =>
+    onMouseMove(websocket, layers[1], game, skin, clientPos, setCursorPos);
 
   const _draw = () =>
     draw(layers[0], contexts[0], skin, game, boardSize.current);
@@ -134,6 +142,9 @@ export function GameBoard(): React.ReactElement {
 
   requestAnimationFrame(update);
 
+  const holdTimeout = useRef<NodeJS.Timeout>();
+  const ignoreUp = useRef<boolean>(false);
+
   const canvasStyle = {
     position: "absolute",
     top: 0,
@@ -148,46 +159,53 @@ export function GameBoard(): React.ReactElement {
       />
       <Canvas
         ref={getLayer(1)}
-        onContextMenu={(evt) => evt.preventDefault()}
+        onContextMenu={(evt) => {
+          ignoreUp.current = false;
+          evt.preventDefault();
+        }}
         onMouseMove={(evt) => {
-          if (layers[1])
-            onMouseMove(websocket, layers[1], game, skin, evt, setCursorPos);
+          if (layers[1]) mouseMoveHandler(new Vector(evt.clientX, evt.clientY));
         }}
         onMouseDown={(evt) => {
-          const action = mouseActions[evt.button];
-          const tile = getTilePos(game, cursorPos.current);
-          if (action != null) onActionDown(game, tile, action);
-        }}
-        onMouseUp={(evt) => {
+          if (holdTimeout.current != null) return;
+
           const action = mouseActions[evt.button];
           if (action != null)
-            onActionUp(
-              websocket,
-              cursorPos.current,
-              game,
-              skin,
-              action,
-              layers[1],
-            );
+            onActionDown(game, getTilePos(game, cursorPos.current), action);
         }}
-        tabIndex={0}
+        onMouseUp={(evt) => {
+          if (ignoreUp.current) {
+            ignoreUp.current = false;
+            return;
+          }
+
+          ignoreUp.current = false;
+          clearTimeout(holdTimeout.current);
+
+          const action = mouseActions[evt.button];
+          if (action != null) actionUpHandler(action);
+        }}
         onKeyDown={(evt) => {
           const action = keyActions[evt.code];
-          const tile = getTilePos(game, cursorPos.current);
-          if (action != null) onActionDown(game, tile, action);
+          if (action != null)
+            onActionDown(game, getTilePos(game, cursorPos.current), action);
         }}
         onKeyUp={(evt) => {
           const action = keyActions[evt.code];
-          if (action != null)
-            onActionUp(
-              websocket,
-              cursorPos.current,
-              game,
-              skin,
-              action,
-              layers[1],
-            );
+          if (action != null) actionUpHandler(action);
         }}
+        onTouchStart={(evt) => {
+          mouseMoveHandler(
+            new Vector(evt.touches[0].clientX, evt.touches[0].clientY),
+          );
+          onActionDown(game, getTilePos(game, cursorPos.current), Action.BREAK);
+
+          holdTimeout.current = setTimeout(() => {
+            actionUpHandler(Action.FLAG);
+            ignoreUp.current = true;
+          }, HOLD_FLAG_TIME);
+        }}
+        tabIndex={0}
         sx={{
           ...canvasStyle,
           cursor: "url(/img/cursor.png), default",
