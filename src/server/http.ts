@@ -10,7 +10,7 @@ import logger from "signale";
 import api from "./api";
 
 const DEV = process.env.DEV;
-const PORT = process.env.PORT ?? (DEV ? "80" : "443");
+const PORT = process.env.PORT ?? (DEV ? "80" : "8443");
 const PUBLIC_ROOT = join(__dirname, "..", "..", "..", "public");
 
 const app = express();
