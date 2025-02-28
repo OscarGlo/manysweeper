@@ -1,5 +1,13 @@
 import React, { useContext, useRef, useState } from "react";
-import { Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import {
+  alpha,
+  Box,
+  CircularProgress,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { UserAvatar } from "./UserAvatar";
 import { useInterval } from "../hooks/useInterval";
@@ -10,10 +18,12 @@ import { CookiesContext } from "../contexts/Cookies";
 import { Gamemode } from "../../model/GameState";
 
 export function UserList(): React.ReactElement {
+  const theme = useTheme();
   const { game } = useContext(GameContext);
   const { cookies, setCookie } = useContext(CookiesContext);
 
   const [users, setUsers] = useState({ ...game.users });
+  const [current, setCurrent] = useState(null);
   const [init, setInit] = useState(false);
   useInterval(
     () => {
@@ -26,10 +36,12 @@ export function UserList(): React.ReactElement {
       )
         setUsers({ ...game.users });
 
+      if (game.currentPlayer !== current) setCurrent(game.currentPlayer);
+
       if (game.init && !init) setInit(true);
     },
     100,
-    [game, users, setUsers],
+    [game, current, setCurrent, users, setUsers, init, setInit],
   );
 
   const container = useRef<HTMLDivElement>();
@@ -63,7 +75,15 @@ export function UserList(): React.ReactElement {
             <Stack
               direction="row"
               alignItems="center"
-              sx={{ gap: 1, marginTop: 1, marginX: 2 }}
+              sx={{
+                gap: 1,
+                padding: 1,
+                paddingX: 2,
+                background:
+                  user.id === current
+                    ? alpha(theme.palette.text.primary, 0.2)
+                    : undefined,
+              }}
               key={user.username + i}
             >
               <UserAvatar color={user.color.hex} username={user.username} />

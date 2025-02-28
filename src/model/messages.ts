@@ -11,12 +11,12 @@ export enum MessageType {
   HOLE,
   BOARD,
   FLAG,
-  WIN,
-  LOSE,
+  END,
   RESET,
   CHAT,
   COLOR,
   LOADING,
+  PLAYER,
 }
 
 export type MessageSpecValue = number | [number] | "";
@@ -69,12 +69,12 @@ export const MessageSpecs: { [type in MessageType]: MessageSpec } = {
   },
   [MessageType.BOARD]: { tiles: [4] },
   [MessageType.FLAG]: { x: 8, y: 8, id: 8, colorId: 5 },
-  [MessageType.WIN]: {},
-  [MessageType.LOSE]: { id: 8, mines: [1] },
+  [MessageType.END]: { id: 8, mines: [1] },
   [MessageType.RESET]: { mineCount: 10, hasStart: 1, startX: 7, startY: 7 },
   [MessageType.CHAT]: { id: 8, message: "" },
   [MessageType.COLOR]: { id: 8, hue: 10, saturation: 7, lightness: 7 },
   [MessageType.LOADING]: {},
+  [MessageType.PLAYER]: { id: 8 },
 };
 
 const typeBits = Math.ceil(Math.log2(Object.values(MessageSpecs).length));
@@ -109,7 +109,7 @@ export type MessageData = (number | number[] | boolean)[];
 
 export function deserializeMessage(data: Uint8Array): MessageData {
   const offset = 8 - typeBits;
-  const type = (data[0] & ((typeBits ** 2 - 1) << offset)) >> offset;
+  const type = (data[0] & ((2 ** typeBits - 1) << offset)) >> offset;
   const specs = MessageSpecs[type];
   const sizes: MessageSpecValue[] = Object.values(MessageSpecs[type]);
   sizes.unshift(typeBits);

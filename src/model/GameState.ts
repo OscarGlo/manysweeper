@@ -29,8 +29,6 @@ export enum Gamemode {
 export enum ChatMessageType {
   INIT,
   MESSAGE,
-  JOIN,
-  LEAVE,
   UPDATE,
   LOG,
 }
@@ -154,6 +152,12 @@ export class GameState extends EventEmitter {
     this.loserId = undefined;
     this.colors = {};
     this.colorIds.reset();
+
+    this.roundPlayers = undefined;
+    this.currentPlayer = undefined;
+    Object.values(this.users).forEach((user) => {
+      user.score = 0;
+    });
 
     this.timer.reset();
   }

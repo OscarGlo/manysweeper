@@ -89,7 +89,7 @@ export const roomId = new IdGen({ min: Math.max(...persistentIds) + 1 });
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
   rooms[id].game.loserId = loserId;
-  broadcast(id, [MessageType.LOSE, loserId, rooms[id].game.mines.arr]);
+  broadcast(id, [MessageType.END, loserId, rooms[id].game.mines.arr]);
 }
 
 const INVALID_ID = 0;
@@ -203,8 +203,8 @@ wss.on("connection", (ws, req) => {
   });
 
   if (game.loserId != null)
-    send([MessageType.LOSE, game.loserId, game.mines.arr]);
-  else if (game.win) send([MessageType.WIN]);
+    send([MessageType.END, game.loserId, game.mines.arr]);
+  else if (game.win) send([MessageType.END]);
 
   if (game.loading) send([MessageType.LOADING]);
 
@@ -220,6 +220,13 @@ wss.on("connection", (ws, req) => {
     const state = game.board.get(pos);
 
     if (msg.type === MessageType.TILE || msg.type === MessageType.CHORD) {
+      if (
+        !game.firstClick &&
+        game.gamemode === Gamemode.FLAGS &&
+        user.id !== game.roundPlayers[game.currentPlayer]
+      )
+        return;
+
       if (game.loserId != null || game.win) {
         return;
       }
@@ -239,25 +246,49 @@ wss.on("connection", (ws, req) => {
             game.moveFirstMine(pos);
           }
           game.firstClick = false;
-          game.roundPlayers = Object.keys(game.users).map((id) => parseInt(id));
+          if (game.gamemode === Gamemode.FLAGS) {
+            game.roundPlayers = Object.keys(game.users).map((id) =>
+              parseInt(id),
+            );
+            game.currentPlayer = game.roundPlayers.indexOf(user.id);
+            broadcast(id, [
+              MessageType.PLAYER,
+              game.roundPlayers[game.currentPlayer],
+            ]);
+          }
         }
 
         if (game.mines.get(pos)) {
           if (game.gamemode === Gamemode.FLAGS) {
             game.board.set(pos, FLAG);
             user.score++;
-            return broadcast(id, [
+            broadcast(id, [
               MessageType.FLAG,
               x,
               y,
               user.id,
               getColorId(game, user.color, id),
             ]);
+
+            if (user.score > game.mineCount / 2) {
+              wss.clients.forEach((w) => {
+                if (w["roomId"] === id)
+                  w.send(
+                    serializeMessage([
+                      MessageType.END,
+                      w === ws ? 0 : user.id,
+                      game.mines.arr,
+                    ]),
+                  );
+              });
+              game.win = true;
+            }
           } else {
             game.board.set(pos, 0);
             broadcast(id, [MessageType.TILE, x, y]);
-            return fail(id, getColorId(game, user.color, id));
+            fail(id, getColorId(game, user.color, id));
           }
+          return;
         }
       }
 
@@ -323,10 +354,19 @@ wss.on("connection", (ws, req) => {
         }
       }
 
+      if (game.gamemode === Gamemode.FLAGS) {
+        game.currentPlayer =
+          (game.currentPlayer + 1) % game.roundPlayers.length;
+        broadcast(id, [
+          MessageType.PLAYER,
+          game.roundPlayers[game.currentPlayer],
+        ]);
+      }
+
       game.win = game.checkWin();
       if (game.win) {
         game.timer.stop();
-        broadcast(id, [MessageType.WIN]);
+        broadcast(id, [MessageType.END]);
       }
     } else if (msg.type === MessageType.FLAG) {
       if (game.loserId != null || game.gamemode === Gamemode.FLAGS) return;
@@ -387,6 +427,18 @@ wss.on("connection", (ws, req) => {
     game.flags.forEachCell((flag, p) => {
       if (flag[0] === user.id) game.flags.set(p, [INVALID_ID, flag[1]]);
     });
+
+    if (game.roundPlayers != null && game.roundPlayers.includes(user.id)) {
+      game.roundPlayers.splice(game.roundPlayers.indexOf(user.id), 1);
+      game.currentPlayer %= game.roundPlayers.length;
+
+      if (game.roundPlayers.length <= 1) return fail(id, INVALID_ID);
+
+      broadcast(id, [
+        MessageType.PLAYER,
+        game.roundPlayers[game.currentPlayer],
+      ]);
+    }
 
     broadcast(id, [MessageType.DISCONNECT, user.id]);
   });

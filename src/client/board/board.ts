@@ -228,7 +228,8 @@ export async function messageListener(
         if (game.init)
           game.chat.push({
             user: game.users[msg.id as number],
-            type: ChatMessageType.JOIN,
+            type: ChatMessageType.LOG,
+            message: " joined the room.",
           });
       }
       break;
@@ -237,7 +238,8 @@ export async function messageListener(
     case MessageType.DISCONNECT:
       game.chat.push({
         user: game.users[msg.id as number],
-        type: ChatMessageType.LEAVE,
+        type: ChatMessageType.LOG,
+        message: " left the room.",
       });
       delete game.users[msg.id as number];
       game.flags.forEachCell((flag, p) => {
@@ -305,31 +307,41 @@ export async function messageListener(
       }
       break;
 
-    case MessageType.WIN:
+    case MessageType.END:
       game.timer.stop();
-      game.win = true;
-      break;
 
-    case MessageType.LOSE:
-      game.timer.stop();
-      game.loserId = msg.id as number;
-      game.mines = new Matrix(
-        game.flags.width,
-        game.flags.height,
-        game.type,
-        (msg.mines as number[]).map((m) => !!m),
-      );
+      if (msg.id === 0) game.win = true;
+      else game.loserId = msg.id as number;
+
+      if (game.gamemode === Gamemode.FLAGS) {
+        if (msg.id === 0)
+          game.chat.push({
+            type: ChatMessageType.LOG,
+            message: "You won the round!",
+          });
+        else
+          game.chat.push({
+            type: ChatMessageType.LOG,
+            user: game.users[msg.id as number],
+            message: " has won the round!",
+          });
+      }
+
+      if (msg.mines)
+        game.mines = new Matrix(
+          game.flags.width,
+          game.flags.height,
+          game.type,
+          (msg.mines as number[]).map((m) => !!m),
+        );
       break;
 
     case MessageType.RESET:
+      game.reset();
       game.mineCount = msg.mineCount as number;
       game.board.forEachCell((_, p) => {
         game.board.set(p, WALL);
       });
-      game.timer.reset();
-      game.mines = undefined;
-      game.loserId = undefined;
-      game.win = false;
       game.startPos = msg.hasStart
         ? new Vector(msg.startX as number, msg.startY as number)
         : null;
@@ -360,6 +372,10 @@ export async function messageListener(
 
     case MessageType.LOADING:
       game.loading = true;
+      break;
+
+    case MessageType.PLAYER:
+      game.currentPlayer = msg.id as number;
       break;
   }
 }
