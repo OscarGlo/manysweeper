@@ -1,5 +1,5 @@
 import React, { createContext, useMemo } from "react";
-import { GameState, GuessLevel } from "../../model/GameState";
+import { Gamemode, GameState, GuessLevel } from "../../model/GameState";
 import { WithChildren } from "../util/WithChildren";
 import { MatrixType } from "../../util/Matrix";
 
@@ -11,7 +11,14 @@ export const GameContext = createContext<GameContextValue>({});
 
 export function GameProvider({ children }: WithChildren) {
   const game = useMemo(() => {
-    const state = new GameState(1, 1, 0, MatrixType.SQUARE, GuessLevel.None);
+    const state = new GameState(
+      1,
+      1,
+      0,
+      MatrixType.SQUARE,
+      GuessLevel.None,
+      Gamemode.COOP,
+    );
     state.init = false;
     return state;
   }, []);

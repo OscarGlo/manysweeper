@@ -8,4 +8,5 @@ export interface UserConnection {
 
   cursorPos?: Vector;
   nextCursorPos?: Vector;
+  score: number;
 }

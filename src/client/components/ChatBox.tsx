@@ -128,13 +128,9 @@ export function ChatBox(): React.ReactElement {
                   ? msg.type === ChatMessageType.LOG
                     ? msg.message
                     : `: ${msg.message}`
-                  : msg.type === ChatMessageType.JOIN
-                    ? ` joined the room.`
-                    : msg.type === ChatMessageType.LEAVE
-                      ? ` left the room.`
-                      : msg.type === ChatMessageType.UPDATE
-                        ? "."
-                        : ""}
+                  : msg.type === ChatMessageType.UPDATE
+                    ? "."
+                    : ""}
               </Typography>
             ))}
           </Stack>

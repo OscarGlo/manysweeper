@@ -1,5 +1,13 @@
 import React, { useContext, useRef, useState } from "react";
-import { Box, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import {
+  alpha,
+  Box,
+  CircularProgress,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { GameContext } from "../contexts/Game";
 import { UserAvatar } from "./UserAvatar";
 import { useInterval } from "../hooks/useInterval";
@@ -7,28 +15,33 @@ import { arraysEqual } from "../util/arraysEqual";
 import { useResizeObserver } from "../hooks/useResizeObserver";
 import { throttled } from "../../util/util";
 import { CookiesContext } from "../contexts/Cookies";
+import { Gamemode } from "../../model/GameState";
 
 export function UserList(): React.ReactElement {
+  const theme = useTheme();
   const { game } = useContext(GameContext);
   const { cookies, setCookie } = useContext(CookiesContext);
 
   const [users, setUsers] = useState({ ...game.users });
+  const [current, setCurrent] = useState(null);
   const [init, setInit] = useState(false);
   useInterval(
     () => {
       if (
         !arraysEqual(
-          (u) => u.username + " " + u.color.hex,
+          (u) => u.username + " " + u.color.hex + " " + u.score,
           Object.values(game.users),
           Object.values(users),
         )
       )
         setUsers({ ...game.users });
 
+      if (game.currentPlayer !== current) setCurrent(game.currentPlayer);
+
       if (game.init && !init) setInit(true);
     },
     100,
-    [game, users, setUsers],
+    [game, current, setCurrent, users, setUsers, init, setInit],
   );
 
   const container = useRef<HTMLDivElement>();
@@ -62,7 +75,15 @@ export function UserList(): React.ReactElement {
             <Stack
               direction="row"
               alignItems="center"
-              sx={{ gap: 1, marginTop: 1, marginLeft: 2 }}
+              sx={{
+                gap: 1,
+                padding: 1,
+                paddingX: 2,
+                background:
+                  user.id === current
+                    ? alpha(theme.palette.text.primary, 0.2)
+                    : undefined,
+              }}
               key={user.username + i}
             >
               <UserAvatar color={user.color.hex} username={user.username} />
@@ -73,9 +94,13 @@ export function UserList(): React.ReactElement {
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }}
+                flex={1}
               >
                 {user.username}
               </Typography>
+              {game != null && game.gamemode === Gamemode.FLAGS ? (
+                <Typography fontWeight="bold">{user.score}</Typography>
+              ) : null}
             </Stack>
           ))}
         </Stack>

@@ -12,7 +12,14 @@ import {
 
 import { Vector } from "../util/Vector";
 import { Color } from "../util/Color";
-import { Border, FLAG, GameState, GuessLevel, WALL } from "../model/GameState";
+import {
+  Border,
+  FLAG,
+  Gamemode,
+  GameState,
+  GuessLevel,
+  WALL,
+} from "../model/GameState";
 import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
 import { IdGen } from "../util/IdGen";
@@ -60,6 +67,8 @@ export const rooms: Record<number, Room> = {
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.None,
+    // TODO: Change back
+    gamemode: Gamemode.FLAGS,
   }),
   1: new Room({
     name: "Persistent expert (NG)",
@@ -68,6 +77,7 @@ export const rooms: Record<number, Room> = {
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.Hard,
+    gamemode: Gamemode.COOP,
   }),
 };
 
@@ -79,7 +89,7 @@ export const roomId = new IdGen({ min: Math.max(...persistentIds) + 1 });
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
   rooms[id].game.loserId = loserId;
-  broadcast(id, [MessageType.LOSE, loserId, rooms[id].game.mines.arr]);
+  broadcast(id, [MessageType.END, loserId, rooms[id].game.mines.arr]);
 }
 
 const INVALID_ID = 0;
@@ -88,6 +98,7 @@ function userMessageData(user: UserConnection, update: boolean = false) {
   return [
     MessageType.USER,
     user.id,
+    user.score,
     user.color.h,
     user.color.s,
     user.color.l,
@@ -158,6 +169,7 @@ wss.on("connection", (ws, req) => {
     id: game.userIds.get(),
     username: cookies.username?.substring(0, 24) ?? `${name} Guest`,
     color: Color.hex(cookies.color ?? colors[name]),
+    score: 0,
   };
 
   game.users[user.id] = user;
@@ -177,6 +189,7 @@ wss.on("connection", (ws, req) => {
     game.height,
     game.type,
     game.guessLevel,
+    game.gamemode,
     game.startPos != null,
     game.startPos?.x ?? 0,
     game.startPos?.y ?? 0,
@@ -190,8 +203,8 @@ wss.on("connection", (ws, req) => {
   });
 
   if (game.loserId != null)
-    send([MessageType.LOSE, game.loserId, game.mines.arr]);
-  else if (game.win) send([MessageType.WIN]);
+    send([MessageType.END, game.loserId, game.mines.arr]);
+  else if (game.win) send([MessageType.END]);
 
   if (game.loading) send([MessageType.LOADING]);
 
@@ -207,22 +220,75 @@ wss.on("connection", (ws, req) => {
     const state = game.board.get(pos);
 
     if (msg.type === MessageType.TILE || msg.type === MessageType.CHORD) {
+      if (
+        !game.firstClick &&
+        game.gamemode === Gamemode.FLAGS &&
+        user.id !== game.roundPlayers[game.currentPlayer]
+      )
+        return;
+
       if (game.loserId != null || game.win) {
         return;
       }
       game.timer.start();
 
-      if (state === 0 || state === FLAG) {
+      if (
+        (game.gamemode === Gamemode.FLAGS && state !== WALL) ||
+        state === 0 ||
+        state === FLAG
+      ) {
         return;
       }
 
       if (msg.type === MessageType.TILE) {
-        if (game.firstClick) game.moveFirstMine(pos);
+        if (game.firstClick) {
+          if (game.gamemode !== Gamemode.FLAGS) {
+            game.moveFirstMine(pos);
+          }
+          game.firstClick = false;
+          if (game.gamemode === Gamemode.FLAGS) {
+            game.roundPlayers = Object.keys(game.users).map((id) =>
+              parseInt(id),
+            );
+            game.currentPlayer = game.roundPlayers.indexOf(user.id);
+            broadcast(id, [
+              MessageType.PLAYER,
+              game.roundPlayers[game.currentPlayer],
+            ]);
+          }
+        }
 
         if (game.mines.get(pos)) {
-          game.board.set(pos, 0);
-          broadcast(id, [MessageType.TILE, x, y]);
-          return fail(id, getColorId(game, user.color, id));
+          if (game.gamemode === Gamemode.FLAGS) {
+            game.board.set(pos, FLAG);
+            user.score++;
+            broadcast(id, [
+              MessageType.FLAG,
+              x,
+              y,
+              user.id,
+              getColorId(game, user.color, id),
+            ]);
+
+            if (user.score > game.mineCount / 2) {
+              wss.clients.forEach((w) => {
+                if (w["roomId"] === id)
+                  w.send(
+                    serializeMessage([
+                      MessageType.END,
+                      w === ws ? 0 : user.id,
+                      game.mines.arr,
+                    ]),
+                  );
+              });
+              game.win = true;
+            }
+          } else {
+            game.board.set(pos, 0);
+            broadcast(id, [MessageType.TILE, x, y]);
+            fail(id, getColorId(game, user.color, id));
+          }
+          return;
         }
       }
 
@@ -288,13 +354,22 @@ wss.on("connection", (ws, req) => {
         }
       }
 
+      if (game.gamemode === Gamemode.FLAGS) {
+        game.currentPlayer =
+          (game.currentPlayer + 1) % game.roundPlayers.length;
+        broadcast(id, [
+          MessageType.PLAYER,
+          game.roundPlayers[game.currentPlayer],
+        ]);
+      }
+
       game.win = game.checkWin();
       if (game.win) {
         game.timer.stop();
-        broadcast(id, [MessageType.WIN]);
+        broadcast(id, [MessageType.END]);
       }
     } else if (msg.type === MessageType.FLAG) {
-      if (game.loserId != null) return;
+      if (game.loserId != null || game.gamemode === Gamemode.FLAGS) return;
 
       // Toggle flag
       const flagId = roomId + pos.toString();
@@ -352,6 +427,18 @@ wss.on("connection", (ws, req) => {
     game.flags.forEachCell((flag, p) => {
       if (flag[0] === user.id) game.flags.set(p, [INVALID_ID, flag[1]]);
     });
+
+    if (game.roundPlayers != null && game.roundPlayers.includes(user.id)) {
+      game.roundPlayers.splice(game.roundPlayers.indexOf(user.id), 1);
+      game.currentPlayer %= game.roundPlayers.length;
+
+      if (game.roundPlayers.length <= 1) return fail(id, INVALID_ID);
+
+      broadcast(id, [
+        MessageType.PLAYER,
+        game.roundPlayers[game.currentPlayer],
+      ]);
+    }
 
     broadcast(id, [MessageType.DISCONNECT, user.id]);
   });
