@@ -67,8 +67,7 @@ export const rooms: Record<number, Room> = {
     mines: 99,
     type: MatrixType.SQUARE,
     guessLevel: GuessLevel.None,
-    // TODO: Change back
-    gamemode: Gamemode.FLAGS,
+    gamemode: Gamemode.COOP,
   }),
   1: new Room({
     name: "Persistent expert (NG)",
