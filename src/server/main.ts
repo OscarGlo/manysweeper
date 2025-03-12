@@ -244,8 +244,9 @@ wss.on("connection", (ws, req) => {
           if (game.gamemode !== Gamemode.FLAGS) {
             game.moveFirstMine(pos);
           }
-          game.firstClick = false;
           if (game.gamemode === Gamemode.FLAGS) {
+            if (Object.keys(game.users).length < 2) return;
+
             game.roundPlayers = Object.keys(game.users).map((id) =>
               parseInt(id),
             );
@@ -255,6 +256,7 @@ wss.on("connection", (ws, req) => {
               game.roundPlayers[game.currentPlayer],
             ]);
           }
+          game.firstClick = false;
         }
 
         if (game.mines.get(pos)) {
