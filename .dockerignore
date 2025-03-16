@@ -1,0 +1,12 @@
+# Build files
+dist/
+node_modules/
+public/bundle.js
+
+# Dev files
+.idea/
+*.iml
+Dockerfile
+.gitignore
+.dockerignore
+compose.yml
