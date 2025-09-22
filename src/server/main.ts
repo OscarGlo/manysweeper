@@ -31,6 +31,7 @@ import bcrypt from "bcryptjs";
 import * as colors from "../../public/colors.json";
 import { MatrixType } from "../util/Matrix";
 import { generateBoard } from "./generate/generateBoard";
+import { SESSIONS } from "./api/auth";
 
 const wss = new WebSocketServer({ server });
 
@@ -164,10 +165,14 @@ wss.on("connection", (ws, req) => {
   const names = Object.keys(colors);
   const name = names[Math.floor(Math.random() * names.length)];
 
+  const session = cookies.session ? SESSIONS[cookies.session] : null;
+
   const user: UserConnection = {
     id: game.userIds.get(),
-    username: cookies.username?.substring(0, 24) ?? `${name} Guest`,
-    color: Color.hex(cookies.color ?? colors[name]),
+    username: session
+      ? session.user.name
+      : (cookies.username?.substring(0, 24) ?? `${name} Guest`),
+    color: Color.hex(session?.user.color ?? cookies.color ?? colors[name]),
     score: 0,
   };
 

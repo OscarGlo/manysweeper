@@ -9,6 +9,7 @@ import { SkinProvider } from "./contexts/Skin";
 import { RoomList } from "./components/RoomList";
 import { Room } from "./components/Room";
 import { PasswordProvider } from "./contexts/Password";
+import { UserProvider } from "./contexts/User";
 
 const router = createBrowserRouter([
   {
@@ -26,14 +27,16 @@ function App(): React.ReactElement {
     <CookiesProvider>
       <AppThemeProvider>
         <SkinProvider>
-          <PasswordProvider>
-            <Stack direction="column" height="100vh">
-              <Navigation />
-              <Box flex={1} overflow="hidden">
-                <RouterProvider router={router} />
-              </Box>
-            </Stack>
-          </PasswordProvider>
+          <UserProvider>
+            <PasswordProvider>
+              <Stack direction="column" height="100vh">
+                <Navigation />
+                <Box flex={1} overflow="hidden">
+                  <RouterProvider router={router} />
+                </Box>
+              </Stack>
+            </PasswordProvider>
+          </UserProvider>
         </SkinProvider>
       </AppThemeProvider>
     </CookiesProvider>

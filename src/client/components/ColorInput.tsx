@@ -12,14 +12,16 @@ import { throttled } from "../../util/util";
 function ColorInputInternal(props: OutlinedInputProps): React.ReactElement {
   const [value, setValue] = useState<string>(props.value as string | undefined);
   const getValue = useCallback(
-    (elt: HTMLInputElement) => setValue(elt.value),
+    (elt: HTMLInputElement) => setValue(elt?.value),
     [setValue],
   );
 
   const onChange = useCallback(
     throttled((evt: ChangeEvent<HTMLInputElement>) => {
-      setValue(evt.target.value);
-      props.onChange?.(evt);
+      if (evt.target != null) {
+        setValue(evt.target.value);
+        props.onChange?.(evt);
+      }
     }, 100),
     [setValue, props],
   );
@@ -45,6 +47,8 @@ function ColorInputInternal(props: OutlinedInputProps): React.ReactElement {
 }
 
 export function ColorInput(props: OutlinedInputProps): React.ReactElement {
+  console.log("ColorInput rerender");
+
   return props.label ? (
     <FormControl>
       <InputLabel>{props.label}</InputLabel>

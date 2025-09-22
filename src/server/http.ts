@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import logger from "signale";
 
-import api from "./api";
+import api from "./api/api";
 
 const PORT = process.env.PORT ?? "9000";
 const PUBLIC_ROOT = join(__dirname, "..", "..", "..", "public");

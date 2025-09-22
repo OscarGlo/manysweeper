@@ -1,9 +1,9 @@
-import express from "express";
-import { rooms, roomId } from "./main";
-import { Room } from "../model/Room";
-import { RoomInfo } from "../model/RoomInfo";
+import { roomId, rooms } from "../main";
+import { Room } from "../../model/Room";
+import { generateBoard } from "../generate/generateBoard";
 import bcrypt from "bcryptjs";
-import { generateBoard } from "./generate/generateBoard";
+import { RoomInfo } from "../../model/RoomInfo";
+import express from "express";
 
 const router = express.Router();
 
@@ -23,14 +23,14 @@ function serializeRoom(id: number, room: Room): RoomInfo {
 }
 
 router
-  .get("/rooms", (req, res) => {
+  .get("/", (req, res) => {
     res.send(
       Object.entries(rooms).map(([id, room]) =>
         serializeRoom(parseInt(id), room),
       ),
     );
   })
-  .post("/rooms", (req, res) => {
+  .post("/", (req, res) => {
     const id = roomId.get();
     const room = new Room(req.body);
     generateBoard(room.game).then(() => room.emit("generated"));
@@ -38,7 +38,7 @@ router
     room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
     res.send(serializeRoom(id, room));
   })
-  .post("/rooms/:id", async (req, res) => {
+  .post("/:id", async (req, res) => {
     const room = rooms[req.params.id];
     res.sendStatus(
       room == null

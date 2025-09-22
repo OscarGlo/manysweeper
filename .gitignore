@@ -1,5 +1,7 @@
 node_modules/
 dist/
+public/bundle.js
 *.pem
 secrets.json
-public/bundle.js
+/secrets/
+/database.json

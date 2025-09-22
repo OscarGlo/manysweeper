@@ -1,8 +1,45 @@
 services:
-  manysweeper:
+  app:
     build:
       context: .
     environment:
       NODE_ENV: production
+      DB_HOST: db
     ports:
       - "8443:8443"
+    develop:
+      watch:
+        - action: sync
+          path: ./public
+          target: /app/public
+        - action: rebuild
+          path: ./src
+    restart: on-failure:3
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres
+    restart: always
+    user: postgres
+    secrets:
+      - db-password
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: manysweeper
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-password
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 1m
+      timeout: 5s
+      retries: 5
+volumes:
+  db-data:
+secrets:
+  db-password:
+    file: secrets/db-password.txt

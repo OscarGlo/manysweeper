@@ -9,9 +9,11 @@ import { OptionsPopover } from "./OptionsPopover";
 import { CookiesContext } from "../contexts/Cookies";
 import { UserAvatar } from "./UserAvatar";
 import { DiscordIcon } from "./DiscordIcon";
+import { UserContext } from "../contexts/User";
 
 export function Navigation(): React.ReactElement {
   const { cookies } = useContext(CookiesContext);
+  const { user } = useContext(UserContext);
 
   const [loginAnchor, setLoginAnchor] = useState<Element>();
   const [optionsAnchor, setOptionsAnchor] = useState<Element>();
@@ -45,8 +47,9 @@ export function Navigation(): React.ReactElement {
           icon={(props) =>
             cookies.username ? (
               <UserAvatar
-                color={cookies.color}
-                username={cookies.username}
+                color={user?.color ?? cookies.color}
+                username={user?.name ?? cookies.username}
+                src={user?.avatar}
                 {...props}
                 sx={{ marginRight: 1 }}
               />
@@ -54,7 +57,7 @@ export function Navigation(): React.ReactElement {
               <PersonIcon {...props} />
             )
           }
-          label="Login"
+          label={user?.name ?? cookies.username ?? "Login"}
           sx={{ marginInlineStart: "auto" }}
           onClick={toggleLoginOpen}
           ref={setLoginAnchor}

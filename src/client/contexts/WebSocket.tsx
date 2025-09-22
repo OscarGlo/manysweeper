@@ -21,6 +21,7 @@ import {
 import { CookiesContext } from "./Cookies";
 import { Color } from "../../util/Color";
 import { Semaphore } from "../util/Semaphore";
+import { UserContext } from "./User";
 
 export interface WebSocketValue {
   websocket?: WebSocket;
@@ -44,17 +45,18 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
   const url = location.host + "?" + qs.stringify(query);
 
   const init = useCallback(() => {
-    setWebsocket((ws) => new WebSocket("wss://" + url));
+    setWebsocket((_) => new WebSocket("wss://" + url));
   }, [setWebsocket]);
 
   useEffect(init, [init]);
 
   const { cookies } = useContext(CookiesContext);
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
-    if (cookies.color == null) return;
+    if (user == null && cookies.color == null) return;
 
-    const color = Color.hex(cookies.color);
+    const color = user ? Color.hex(user.color) : Color.hex(cookies.color);
     websocket?.send(
       serializeMessage([
         MessageType.USER,
@@ -63,10 +65,10 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
         color.s,
         color.l,
         true,
-        cookies.username,
+        user?.name ?? cookies.username,
       ]),
     );
-  }, [cookies.username, cookies.color]);
+  }, [user, cookies.username, cookies.color]);
 
   const messageSemaphore = useRef(new Semaphore());
 
