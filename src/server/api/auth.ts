@@ -56,7 +56,7 @@ router.get("/", async (req, res) => {
 
   const sessionId = v4();
   SESSIONS[sessionId] = { user };
-  res.cookie("session", sessionId, { httpOnly: true }).redirect("/");
+  res.cookie("session", sessionId, { maxAge: 30 * 24 * 60 * 60 }).redirect("/");
 });
 
 router.delete("/", async (req, res) => {
