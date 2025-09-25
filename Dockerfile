@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-ARG PORT=8443
+ARG PORT=9000
 
 WORKDIR /app
 
