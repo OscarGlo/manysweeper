@@ -13,12 +13,19 @@ import { CookieInput } from "./CookieInput";
 import { CookiesContext } from "../contexts/Cookies";
 import { UserContext } from "../contexts/User";
 
-const OAUTH_URL =
-  "https://discord.com/oauth2/authorize" +
-  "?client_id=1349493971608408224" +
-  "&response_type=code" +
-  "&redirect_uri=http%3A%2F%2Flocalhost%3A8443%2Fapi%2Fauth" +
-  "&scope=identify";
+function getOAuthUrl() {
+  return (
+    "https://discord.com/oauth2/authorize?" +
+    new URLSearchParams({
+      client_id: "1349493971608408224",
+      response_type: "code",
+      scope: "identify",
+      redirect_uri: window.location.host.startsWith("localhost")
+        ? "http://localhost:9000/api/auth"
+        : "https://manysweeper.oscarglo.dev/api/auth",
+    })
+  );
+}
 
 export function LoginPopover(props: PopoverProps): React.ReactElement {
   const { setCookie } = useContext(CookiesContext);
@@ -44,7 +51,7 @@ export function LoginPopover(props: PopoverProps): React.ReactElement {
         {loading ? (
           <CircularProgress />
         ) : user == null ? (
-          <Button variant="contained" href={OAUTH_URL}>
+          <Button variant="contained" href={getOAuthUrl()}>
             Login via Discord
           </Button>
         ) : (

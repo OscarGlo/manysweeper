@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
       client_secret: secrets.discord.clientSecret,
       grant_type: "authorization_code",
       code: code,
-      redirect_uri: "http://localhost:8443/api/auth",
+      redirect_uri: "https://manysweeper.oscarglo.dev/api/auth",
     }),
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
