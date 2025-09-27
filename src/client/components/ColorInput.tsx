@@ -47,8 +47,6 @@ function ColorInputInternal(props: OutlinedInputProps): React.ReactElement {
 }
 
 export function ColorInput(props: OutlinedInputProps): React.ReactElement {
-  console.log("ColorInput rerender");
-
   return props.label ? (
     <FormControl>
       <InputLabel>{props.label}</InputLabel>

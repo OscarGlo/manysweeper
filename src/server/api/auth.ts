@@ -65,5 +65,3 @@ router.delete("/", async (req, res) => {
 });
 
 export default router;
-
-// https://discord.com/oauth2/authorize?client_id=1349493971608408224&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8443%2Fapi%2Fauth&scope=identify
