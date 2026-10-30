@@ -9,7 +9,7 @@ import React, {
 import { WithChildren } from "../util/WithChildren";
 import { useNavigate } from "react-router-dom";
 import qs from "qs";
-import { WebSocketQuery } from "../../model/WebSocketQuery";
+import { GameWebSocketQuery } from "../../model/wsQueries";
 import {
   deserializeMessage,
   ErrorType,
@@ -22,53 +22,28 @@ import { CookiesContext } from "./Cookies";
 import { Color } from "../../util/Color";
 import { Semaphore } from "../util/Semaphore";
 import { UserContext } from "./User";
+import { useWebSocket } from "../hooks/useWebSocket";
 
-export interface WebSocketValue {
+export interface GameSocketValue {
   websocket?: WebSocket;
   setMessageListener: (listener: (msg: Message) => void) => void;
 }
 
-export const WebSocketContext = createContext<WebSocketValue>({
+export const GameSocketContext = createContext<GameSocketValue>({
   setMessageListener: () => {},
 });
 
-export interface WebSocketProviderProps extends WithChildren {
-  query: WebSocketQuery;
+export interface GameSocketProviderProps extends WithChildren {
+  query?: GameWebSocketQuery;
 }
 
-export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
+export function GameSocketProvider({
+  children,
+  query,
+}: GameSocketProviderProps) {
   const navigate = useNavigate();
-  const [websocket, setWebsocket] = useState<WebSocket>();
   const [messageListener, setMessageListener] =
     useState<(msg: Message) => void>();
-
-  const url = location.host + "?" + qs.stringify(query);
-
-  const init = useCallback(() => {
-    setWebsocket((_) => new WebSocket("wss://" + url));
-  }, [setWebsocket]);
-
-  useEffect(init, [init]);
-
-  const { cookies } = useContext(CookiesContext);
-  const { user } = useContext(UserContext);
-
-  useEffect(() => {
-    if (user == null && cookies.color == null) return;
-
-    const color = user ? Color.hex(user.color) : Color.hex(cookies.color);
-    websocket?.send(
-      serializeMessage([
-        MessageType.USER,
-        0,
-        color.h,
-        color.s,
-        color.l,
-        true,
-        user?.name ?? cookies.username,
-      ]),
-    );
-  }, [user, cookies.username, cookies.color]);
 
   const messageSemaphore = useRef(new Semaphore());
 
@@ -90,30 +65,36 @@ export function WebSocketProvider({ children, query }: WebSocketProviderProps) {
     [query, navigate, messageListener],
   );
 
-  useEffect(() => {
-    if (websocket == null) return;
+  const { websocket } = useWebSocket(query, onMessage);
 
-    websocket.addEventListener("message", onMessage);
-
-    return () => websocket.removeEventListener("message", onMessage);
-  }, [websocket, onMessage]);
+  const { cookies } = useContext(CookiesContext);
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
-    if (websocket == null) return;
-    const onError = () => setWebsocket(new WebSocket("ws://" + url));
-    websocket.addEventListener("error", onError);
+    if (user == null && cookies.color == null) return;
 
-    return () => websocket.removeEventListener("error", onError);
-  }, [websocket, setWebsocket]);
+    const color = user ? Color.hex(user.color) : Color.hex(cookies.color);
+    websocket?.send(
+      serializeMessage([
+        MessageType.USER,
+        0,
+        color.h,
+        color.s,
+        color.l,
+        true,
+        user?.name ?? cookies.username,
+      ]),
+    );
+  }, [user, cookies.username, cookies.color]);
 
   return (
-    <WebSocketContext.Provider
+    <GameSocketContext.Provider
       value={{
         websocket,
         setMessageListener: (value) => setMessageListener(() => value),
       }}
     >
       {children}
-    </WebSocketContext.Provider>
+    </GameSocketContext.Provider>
   );
 }

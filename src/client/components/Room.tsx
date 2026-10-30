@@ -1,5 +1,5 @@
 import { GameBoard } from "./GameBoard";
-import { WebSocketProvider } from "../contexts/WebSocket";
+import { GameSocketProvider } from "../contexts/GameSocket";
 import React, { useCallback, useContext, useRef } from "react";
 import { useParams } from "react-router";
 import { PasswordContext } from "../contexts/Password";
@@ -38,7 +38,7 @@ export function Room() {
   );
 
   return (
-    <WebSocketProvider query={{ id, password }}>
+    <GameSocketProvider query={{ id, password }}>
       <GameProvider>
         <Stack
           direction="row"
@@ -97,6 +97,6 @@ export function Room() {
           </Box>
         </Stack>
       </GameProvider>
-    </WebSocketProvider>
+    </GameSocketProvider>
   );
 }

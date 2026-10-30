@@ -10,11 +10,16 @@ import { RoomList } from "./components/RoomList";
 import { Room } from "./components/Room";
 import { PasswordProvider } from "./contexts/Password";
 import { UserProvider } from "./contexts/User";
+import { RoomsProvider } from "./contexts/Rooms";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <RoomList />,
+    element: (
+      <RoomsProvider>
+        <RoomList />
+      </RoomsProvider>
+    ),
   },
   {
     path: "/room/:id",

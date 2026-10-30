@@ -1,4 +1,4 @@
-import { roomId, rooms } from "../main";
+import { onRoomUpdate, roomId, rooms } from "../main";
 import { Room } from "../../model/Room";
 import { generateBoard } from "../generate/generateBoard";
 import bcrypt from "bcryptjs";
@@ -35,8 +35,16 @@ router
     const room = new Room(req.body);
     generateBoard(room.game).then(() => room.emit("generated"));
     rooms[id] = room;
-    room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
-    res.send(serializeRoom(id, room));
+
+    room.timeout = setTimeout(() => {
+      delete rooms[id];
+      onRoomUpdate({ id, open: false });
+    }, Room.TIMEOUT);
+
+    const info = serializeRoom(id, room);
+
+    res.send(info);
+    onRoomUpdate({ ...info, open: true });
   })
   .post("/:id", async (req, res) => {
     const room = rooms[req.params.id];

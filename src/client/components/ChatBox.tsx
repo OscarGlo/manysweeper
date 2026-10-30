@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Box, Chip, Paper, Stack, TextField, Typography } from "@mui/material";
 import { GameContext } from "../contexts/Game";
-import { WebSocketContext } from "../contexts/WebSocket";
+import { GameSocketContext } from "../contexts/GameSocket";
 import { MessageType, serializeMessage } from "../../model/messages";
 import { useInterval } from "../hooks/useInterval";
 import { ChatMessageType } from "../../model/GameState";
@@ -23,7 +23,7 @@ export function UserName({ user }: { user: UserConnection }) {
 }
 
 export function ChatBox(): React.ReactElement {
-  const { websocket } = useContext(WebSocketContext);
+  const { websocket } = useContext(GameSocketContext);
   const { game } = useContext(GameContext);
 
   const [chat, setChat] = useState([...game.chat]);

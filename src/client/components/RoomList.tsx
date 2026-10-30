@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   DataGrid,
@@ -29,6 +29,8 @@ import Square from "@mui/icons-material/SquareOutlined";
 import Hexagon from "@mui/icons-material/HexagonOutlined";
 import Triangle from "@mui/icons-material/ChangeHistory";
 import { Gamemode, GuessLevel } from "../../model/GameState";
+import { RoomSocketProvider } from "../contexts/RoomSocket";
+import { RoomsContext } from "../contexts/Rooms";
 
 export interface ShapeIconProps extends SvgIconProps {
   shape: MatrixType;
@@ -115,20 +117,7 @@ export function RoomList(): React.ReactElement {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const [rooms, setRooms] = useState<RoomInfo[]>([]);
-
-  const [loading, setLoading] = useState(true);
-
-  const loadRooms = useCallback(() => {
-    fetch("/api/rooms")
-      .then((res) => res.json())
-      .then((rooms) => {
-        setRooms(rooms);
-        setLoading(false);
-      });
-  }, [setRooms]);
-
-  useEffect(loadRooms, [loadRooms]);
+  const { rooms, setRooms, loading, setLoading } = useContext(RoomsContext);
 
   const createRoom = useCallback(
     (data: CreateRoom) => {
@@ -149,74 +138,76 @@ export function RoomList(): React.ReactElement {
   const [alertOpen, setAlertOpen] = useState(params.size > 0);
 
   return (
-    <Center height="100%">
-      <Paper>
-        <DataGrid
-          columns={columns}
-          rows={rooms}
-          onRowClick={(params, evt) => {
-            evt.defaultMuiPrevented = true;
-            if (params.row.private) {
-              setPasswordDialogRoom(params.row as RoomInfo);
-              setPasswordDialogOpen(true);
-            } else {
-              navigate(`/room/${params.row.id}`);
-            }
-          }}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          pageSizeOptions={[10]}
-          sx={{
-            ".MuiDataGrid-cell": {
-              cursor: "pointer",
-            },
-          }}
-          loading={loading}
-          slots={{
-            footer: () => (
-              <GridFooterContainer>
-                <Button
-                  onClick={() => setCreateDialogOpen(true)}
-                  startIcon={<AddIcon />}
-                  sx={{ marginLeft: 1 }}
-                >
-                  Create room
-                </Button>
-                <GridFooter sx={{ border: "none" }} />
-              </GridFooterContainer>
-            ),
-          }}
-        />
+    <RoomSocketProvider>
+      <Center height="100%">
+        <Paper>
+          <DataGrid
+            columns={columns}
+            rows={rooms}
+            onRowClick={(params, evt) => {
+              evt.defaultMuiPrevented = true;
+              if (params.row.private) {
+                setPasswordDialogRoom(params.row as RoomInfo);
+                setPasswordDialogOpen(true);
+              } else {
+                navigate(`/room/${params.row.id}`);
+              }
+            }}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } },
+            }}
+            pageSizeOptions={[10]}
+            sx={{
+              ".MuiDataGrid-cell": {
+                cursor: "pointer",
+              },
+            }}
+            loading={loading}
+            slots={{
+              footer: () => (
+                <GridFooterContainer>
+                  <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    startIcon={<AddIcon />}
+                    sx={{ marginLeft: 1 }}
+                  >
+                    Create room
+                  </Button>
+                  <GridFooter sx={{ border: "none" }} />
+                </GridFooterContainer>
+              ),
+            }}
+          />
 
-        <CreateRoomDialog
-          open={createDialogOpen}
-          onSubmit={createRoom}
-          onClose={() => setCreateDialogOpen(false)}
-        />
+          <CreateRoomDialog
+            open={createDialogOpen}
+            onSubmit={createRoom}
+            onClose={() => setCreateDialogOpen(false)}
+          />
 
-        <PasswordDialog
-          open={passwordDialogOpen}
-          onClose={() => setPasswordDialogOpen(false)}
-          room={passwordDialogRoom}
-        />
+          <PasswordDialog
+            open={passwordDialogOpen}
+            onClose={() => setPasswordDialogOpen(false)}
+            room={passwordDialogRoom}
+          />
 
-        {/* TODO: Extract error functionality */}
-        <Snackbar
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-          open={alertOpen}
-          onClose={(_, reason) => {
-            if (reason !== "clickaway") setAlertOpen(false);
-          }}
-          autoHideDuration={5000}
-        >
-          <Alert severity="error" sx={{ width: "100%" }}>
-            {params.get("wrongPass")
-              ? `Room ${params.get("errorId")} has a password`
-              : `Room ${params.get("errorId")} does not exist`}
-          </Alert>
-        </Snackbar>
-      </Paper>
-    </Center>
+          {/* TODO: Extract error functionality */}
+          <Snackbar
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            open={alertOpen}
+            onClose={(_, reason) => {
+              if (reason !== "clickaway") setAlertOpen(false);
+            }}
+            autoHideDuration={5000}
+          >
+            <Alert severity="error" sx={{ width: "100%" }}>
+              {params.get("wrongPass")
+                ? `Room ${params.get("errorId")} has a password`
+                : `Room ${params.get("errorId")} does not exist`}
+            </Alert>
+          </Snackbar>
+        </Paper>
+      </Center>
+    </RoomSocketProvider>
   );
 }

@@ -22,31 +22,41 @@ import {
 } from "../model/GameState";
 import { server } from "./http";
 import { UserConnection } from "../model/UserConnection";
-import { IdGen } from "../util/IdGen";
+import { Id, IdGen } from "../util/IdGen";
 import { Room } from "../model/Room";
 import qs from "qs";
-import { WebSocketQuery } from "../model/WebSocketQuery";
+import { WebSocketQuery } from "../model/wsQueries";
 import bcrypt from "bcryptjs";
 
 import * as colors from "../../public/colors.json";
 import { MatrixType } from "../util/Matrix";
 import { generateBoard } from "./generate/generateBoard";
 import { SESSIONS } from "./api/auth";
+import { IncomingMessage } from "http";
+import { RoomInfo } from "../model/RoomInfo";
 
 const wss = new WebSocketServer({ server });
 
-function broadcast(roomId: number, message: MessageValue[], from?: WebSocket) {
-  wss.clients.forEach((ws) => {
-    if (ws["roomId"] === roomId && ws !== from)
-      ws.send(serializeMessage(message), {
-        binary: true,
-      });
+const roomSockets: WebSocket[] = [];
+const gameSockets: WebSocket[] = [];
+
+function send(ws: WebSocket, message: MessageValue[]) {
+  ws.send(serializeMessage(message), { binary: true });
+}
+function broadcast(
+  to: WebSocket[],
+  roomId: number,
+  message: MessageValue[],
+  from?: WebSocket,
+) {
+  to.forEach((ws) => {
+    if (ws["roomId"] === roomId && ws !== from) send(ws, message);
   });
 }
 
 function reset(id: number) {
   const game = rooms[id].game;
-  broadcast(id, [
+  broadcast(gameSockets, id, [
     MessageType.RESET,
     game.mineCount,
     game.startPos != null,
@@ -89,7 +99,11 @@ export const roomId = new IdGen({ min: Math.max(...persistentIds) + 1 });
 function fail(id: number, loserId: number) {
   rooms[id].game.timer.stop();
   rooms[id].game.loserId = loserId;
-  broadcast(id, [MessageType.END, loserId, rooms[id].game.mines.arr]);
+  broadcast(gameSockets, id, [
+    MessageType.END,
+    loserId,
+    rooms[id].game.mines.arr,
+  ]);
 }
 
 const INVALID_ID = 0;
@@ -108,7 +122,7 @@ function userMessageData(user: UserConnection, update: boolean = false) {
 }
 
 function getColorId(game: GameState, color: Color, roomId: number): number {
-  let id;
+  let id: Id;
   if (
     !Object.values(game.colors)
       .map((c) => c.hex)
@@ -117,7 +131,13 @@ function getColorId(game: GameState, color: Color, roomId: number): number {
     id = game.colorIds.get();
     game.colors[id] = color;
 
-    broadcast(roomId, [MessageType.COLOR, id, color.h, color.s, color.l]);
+    broadcast(gameSockets, roomId, [
+      MessageType.COLOR,
+      id,
+      color.h,
+      color.s,
+      color.l,
+    ]);
   } else {
     id = parseInt(
       Object.entries(game.colors).find((e) => e[1].hex == color.hex)[0],
@@ -126,19 +146,38 @@ function getColorId(game: GameState, color: Color, roomId: number): number {
   return id;
 }
 
+export function onRoomUpdate(info: Partial<RoomInfo>) {
+  for (const ws of roomSockets) ws.send(JSON.stringify(info));
+}
+
+wss.on("connection", (ws, req) => {
+  const query = qs.parse(req.url.split("?", 2)[1]) as unknown as WebSocketQuery;
+  if ("id" in query) {
+    registerGameSocket(ws, query, req);
+  } else {
+    roomSockets.push(ws);
+
+    ws.on("close", () => {
+      roomSockets.splice(gameSockets.indexOf(ws));
+    });
+  }
+});
+
 const FLAG_DELAY = 300;
 const flagDelay = {};
 
-wss.on("connection", (ws, req) => {
-  function send(message: MessageValue[]) {
-    ws.send(serializeMessage(message), { binary: true });
-  }
+function registerGameSocket(
+  ws: WebSocket,
+  query: WebSocketQuery,
+  req: IncomingMessage,
+) {
+  gameSockets.push(ws);
 
-  const query = req.url.split("?", 2)[1];
-  const { id: idStr, password } = qs.parse(query) as unknown as WebSocketQuery;
+  const { id: idStr, password } = query;
   const id = parseInt(idStr);
 
-  if (rooms[id] == null) return send([MessageType.ERROR, ErrorType.NOT_FOUND]);
+  if (rooms[id] == null)
+    return send(ws, [MessageType.ERROR, ErrorType.NOT_FOUND]);
 
   const room = rooms[id];
   ws["roomId"] = id;
@@ -147,7 +186,7 @@ wss.on("connection", (ws, req) => {
     room.passwordHash &&
     (password == null || !bcrypt.compare(password, room.passwordHash))
   )
-    return send([MessageType.ERROR, ErrorType.WRONG_PASS]);
+    return send(ws, [MessageType.ERROR, ErrorType.WRONG_PASS]);
 
   clearTimeout(room.timeout);
   room.timeout = undefined;
@@ -177,14 +216,21 @@ wss.on("connection", (ws, req) => {
   };
 
   game.users[user.id] = user;
-  broadcast(id, userMessageData(user), ws);
+  broadcast(gameSockets, id, userMessageData(user), ws);
 
   Object.values(game.users).forEach((user) => {
-    send(userMessageData(user));
+    send(ws, userMessageData(user));
     if (user.cursorPos)
-      send([MessageType.CURSOR, user.cursorPos.x, user.cursorPos.y, user.id]);
+      send(ws, [
+        MessageType.CURSOR,
+        user.cursorPos.x,
+        user.cursorPos.y,
+        user.id,
+      ]);
   });
-  send([
+  onRoomUpdate({ id, players: Object.keys(game.users).length.toString() });
+
+  send(ws, [
     MessageType.INIT,
     user.id,
     game.mineCount,
@@ -201,16 +247,16 @@ wss.on("connection", (ws, req) => {
     game.flags.arr.map(([user, color]) => (user << 5) + color),
   ]);
   // TODO Merge INIT and BOARD
-  send([MessageType.BOARD, game.board.arr]);
+  send(ws, [MessageType.BOARD, game.board.arr]);
   Object.entries(game.colors).forEach(([id, color]) => {
-    send([MessageType.COLOR, id, color.h, color.s, color.l]);
+    send(ws, [MessageType.COLOR, id, color.h, color.s, color.l]);
   });
 
   if (game.loserId != null)
-    send([MessageType.END, game.loserId, game.mines.arr]);
-  else if (game.win) send([MessageType.END]);
+    send(ws, [MessageType.END, game.loserId, game.mines.arr]);
+  else if (game.win) send(ws, [MessageType.END]);
 
-  if (game.loading) send([MessageType.LOADING]);
+  if (game.loading) send(ws, [MessageType.LOADING]);
 
   room.on("generated", () => reset(id));
 
@@ -256,7 +302,7 @@ wss.on("connection", (ws, req) => {
               parseInt(id),
             );
             game.currentPlayer = game.roundPlayers.indexOf(user.id);
-            broadcast(id, [
+            broadcast(gameSockets, id, [
               MessageType.PLAYER,
               game.roundPlayers[game.currentPlayer],
             ]);
@@ -268,7 +314,7 @@ wss.on("connection", (ws, req) => {
           if (game.gamemode === Gamemode.FLAGS) {
             game.board.set(pos, FLAG);
             user.score++;
-            broadcast(id, [
+            broadcast(gameSockets, id, [
               MessageType.FLAG,
               x,
               y,
@@ -291,7 +337,7 @@ wss.on("connection", (ws, req) => {
             }
           } else {
             game.board.set(pos, 0);
-            broadcast(id, [MessageType.TILE, x, y]);
+            broadcast(gameSockets, id, [MessageType.TILE, x, y]);
             fail(id, getColorId(game, user.color, id));
           }
           return;
@@ -311,13 +357,18 @@ wss.on("connection", (ws, req) => {
         let failed: boolean;
         [failed, borders] = game.chord(pos);
         if (failed) {
-          broadcast(id, [MessageType.CHORD, x, y]);
+          broadcast(gameSockets, id, [MessageType.CHORD, x, y]);
           return fail(id, getColorId(game, user.color, id));
         }
       }
 
       if (isTile) {
-        broadcast(id, [MessageType.TILE, x, y, game.board.get(pos)]);
+        broadcast(gameSockets, id, [
+          MessageType.TILE,
+          x,
+          y,
+          game.board.get(pos),
+        ]);
       } else {
         if (borders.length === 0) return;
 
@@ -329,7 +380,7 @@ wss.on("connection", (ws, req) => {
           },
           true,
         );
-        broadcast(id, [MessageType.CHORD, x, y, tiles]);
+        broadcast(gameSockets, id, [MessageType.CHORD, x, y, tiles]);
 
         if (!borders.flat().every((b) => game.board.neighbour(pos, b))) {
           const tileBorders = borders.filter(
@@ -339,12 +390,18 @@ wss.on("connection", (ws, req) => {
           );
           for (let i = 0; i < tileBorders.length; i++) {
             const { x, y } = tileBorders[i][0];
-            broadcast(id, [MessageType.TILE, x, y, game.board.get(pos)]);
+            broadcast(gameSockets, id, [
+              MessageType.TILE,
+              x,
+              y,
+              game.board.get(pos),
+            ]);
           }
 
           const holeBorders = borders.filter((b) => b.length > 1);
           for (let i = 0; i < holeBorders.length; i++) {
             broadcast(
+              gameSockets,
               id,
               game.getHoleMessage(
                 holeBorders[i],
@@ -355,7 +412,15 @@ wss.on("connection", (ws, req) => {
           }
           // Send dummy HOLE message to open borders if no previous hole message was sent
           if (holeBorders.length === 0) {
-            broadcast(id, [MessageType.HOLE, x, y, x, y, true, []]);
+            broadcast(gameSockets, id, [
+              MessageType.HOLE,
+              x,
+              y,
+              x,
+              y,
+              true,
+              [],
+            ]);
           }
         }
       }
@@ -363,7 +428,7 @@ wss.on("connection", (ws, req) => {
       if (game.gamemode === Gamemode.FLAGS) {
         game.currentPlayer =
           (game.currentPlayer + 1) % game.roundPlayers.length;
-        broadcast(id, [
+        broadcast(gameSockets, id, [
           MessageType.PLAYER,
           game.roundPlayers[game.currentPlayer],
         ]);
@@ -372,7 +437,7 @@ wss.on("connection", (ws, req) => {
       game.win = game.checkWin();
       if (game.win) {
         game.timer.stop();
-        broadcast(id, [MessageType.END]);
+        broadcast(gameSockets, id, [MessageType.END]);
       }
     } else if (msg.type === MessageType.FLAG) {
       if (game.loserId != null || game.gamemode === Gamemode.FLAGS) return;
@@ -390,7 +455,7 @@ wss.on("connection", (ws, req) => {
 
         const color = getColorId(game, user.color, id);
         if (flag) game.flags.set(pos, [user.id, color]);
-        broadcast(id, [MessageType.FLAG, x, y, user.id, color]);
+        broadcast(gameSockets, id, [MessageType.FLAG, x, y, user.id, color]);
 
         // Prevent other users toggling flag
         flagDelay[flagId] = true;
@@ -401,7 +466,7 @@ wss.on("connection", (ws, req) => {
     } else if (msg.type === MessageType.RESET) {
       if (game.loserId != null || game.win) {
         if (game.guessLevel != GuessLevel.None)
-          broadcast(id, [MessageType.LOADING]);
+          broadcast(gameSockets, id, [MessageType.LOADING]);
 
         // Async game generation
         game.reset();
@@ -409,9 +474,9 @@ wss.on("connection", (ws, req) => {
       }
     } else if (msg.type === MessageType.CURSOR) {
       game.users[user.id].cursorPos = new Vector(x, y);
-      broadcast(id, [MessageType.CURSOR, x, y, user.id], ws);
+      broadcast(gameSockets, id, [MessageType.CURSOR, x, y, user.id], ws);
     } else if (msg.type === MessageType.CHAT) {
-      broadcast(id, [MessageType.CHAT, user.id, msg.message]);
+      broadcast(gameSockets, id, [MessageType.CHAT, user.id, msg.message]);
     } else if (msg.type === MessageType.USER) {
       user.color = Color.hsl(
         msg.hue as number,
@@ -419,13 +484,17 @@ wss.on("connection", (ws, req) => {
         msg.lightness as number,
       );
       user.username = msg.username as string;
-      broadcast(id, userMessageData(user, true));
+      broadcast(gameSockets, id, userMessageData(user, true));
     }
   });
 
   ws.on("close", () => {
+    gameSockets.splice(gameSockets.indexOf(ws));
+
     delete game.users[user.id];
     game.userIds.delete(user.id);
+
+    onRoomUpdate({ id, players: Object.keys(game.users).length.toString() });
 
     if (!(id in persistentIds) && Object.values(game.users).length === 0)
       room.timeout = setTimeout(() => delete rooms[id], Room.TIMEOUT);
@@ -440,12 +509,12 @@ wss.on("connection", (ws, req) => {
 
       if (game.roundPlayers.length <= 1) return fail(id, INVALID_ID);
 
-      broadcast(id, [
+      broadcast(gameSockets, id, [
         MessageType.PLAYER,
         game.roundPlayers[game.currentPlayer],
       ]);
     }
 
-    broadcast(id, [MessageType.DISCONNECT, user.id]);
+    broadcast(gameSockets, id, [MessageType.DISCONNECT, user.id]);
   });
-});
+}

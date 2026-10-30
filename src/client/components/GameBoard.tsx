@@ -22,7 +22,7 @@ import {
 } from "../board/board";
 import { SkinContext } from "../contexts/Skin";
 import { Box, styled } from "@mui/material";
-import { WebSocketContext } from "../contexts/WebSocket";
+import { GameSocketContext } from "../contexts/GameSocket";
 import { Vector } from "../../util/Vector";
 import { MessageType } from "../../model/messages";
 import { GameContext } from "../contexts/Game";
@@ -46,7 +46,7 @@ export function GameBoard(): React.ReactElement {
     cursorPos.current = pos;
   }
 
-  const { websocket, setMessageListener } = useContext(WebSocketContext);
+  const { websocket, setMessageListener } = useContext(GameSocketContext);
 
   const getLayer = useCallback(
     (index: number) => (elt?: HTMLCanvasElement) => {
