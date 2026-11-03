@@ -293,6 +293,12 @@ function registerGameSocket(
       if (msg.type === MessageType.TILE) {
         if (game.firstClick) {
           if (game.gamemode !== Gamemode.FLAGS) {
+            if (
+              game.guessLevel !== GuessLevel.None &&
+              !game.startPos.equals(pos)
+            )
+              return;
+
             game.moveFirstMine(pos);
           }
           if (game.gamemode === Gamemode.FLAGS) {

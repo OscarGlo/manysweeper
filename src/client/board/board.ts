@@ -125,7 +125,13 @@ export function onActionUp(
       (state === WALL && action === Action.CHORD) ||
       (state === FLAG && (action !== Action.FLAG || game.win)) ||
       (game.gamemode === Gamemode.FLAGS &&
-        (action !== Action.BREAK || state !== WALL))
+        ((game.firstClick && Object.keys(game.users).length < 2) ||
+          (!game.firstClick && game.currentPlayer !== game.localUser) ||
+          action !== Action.BREAK ||
+          state !== WALL)) ||
+      (game.firstClick &&
+        game.guessLevel !== GuessLevel.None &&
+        !game.startPos.equals(tilePos))
     )
       sendMessage = false;
 
@@ -165,6 +171,7 @@ export async function messageListener(
 
   switch (msg.type) {
     case MessageType.INIT:
+      game.localUser = msg.id as number;
       game.width = msg.width as number;
       game.height = msg.height as number;
       game.type = msg.tileType as MatrixType;
@@ -173,7 +180,10 @@ export async function messageListener(
       game.init = true;
 
       game.timer.time = msg.time as number;
-      if (msg.started) game.timer.start();
+      if (msg.started) {
+        game.timer.start();
+        game.firstClick = false;
+      }
       game.mineCount = msg.mineCount as number;
       game.flags = new Matrix(
         game.width,
@@ -258,12 +268,14 @@ export async function messageListener(
     case MessageType.TILE:
       game.clickedTile = undefined;
       game.timer.start();
+      game.firstClick = false;
       game.board.set(pos, (msg.tile as number) ?? 0);
       break;
 
     case MessageType.CHORD: {
       game.clickedTile = undefined;
       game.timer.start();
+      game.firstClick = false;
       if (game.board.get(pos) === WALL) game.board.set(pos, 0);
       let i = 0;
       game.board.forEachNeighbor(
@@ -281,6 +293,7 @@ export async function messageListener(
     case MessageType.HOLE:
       game.clickedTile = undefined;
       game.timer.start();
+      game.firstClick = false;
       game.openBorder(msg);
       if (msg.last) game.openHole(msg);
       break;

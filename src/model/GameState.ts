@@ -79,6 +79,7 @@ export class GameState extends EventEmitter {
   roundPlayers: number[];
   currentPlayer: number;
 
+  localUser: number;
   holding?: boolean;
   clickedTile?: Vector;
   init: boolean;
