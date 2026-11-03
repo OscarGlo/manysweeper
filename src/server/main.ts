@@ -158,7 +158,7 @@ wss.on("connection", (ws, req) => {
     roomSockets.push(ws);
 
     ws.on("close", () => {
-      roomSockets.splice(gameSockets.indexOf(ws), 1);
+      roomSockets.splice(roomSockets.indexOf(ws), 1);
     });
   }
 });
