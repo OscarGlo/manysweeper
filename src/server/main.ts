@@ -158,7 +158,7 @@ wss.on("connection", (ws, req) => {
     roomSockets.push(ws);
 
     ws.on("close", () => {
-      roomSockets.splice(gameSockets.indexOf(ws));
+      roomSockets.splice(gameSockets.indexOf(ws), 1);
     });
   }
 });
@@ -489,7 +489,7 @@ function registerGameSocket(
   });
 
   ws.on("close", () => {
-    gameSockets.splice(gameSockets.indexOf(ws));
+    gameSockets.splice(gameSockets.indexOf(ws), 1);
 
     delete game.users[user.id];
     game.userIds.delete(user.id);
