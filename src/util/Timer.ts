@@ -13,7 +13,10 @@ export class Timer {
   }
 
   start() {
-    if (this.interval == null)
+    if (
+      this.interval == null &&
+      (this.options?.max == null || this.time < this.options.max)
+    )
       this.interval = setInterval(() => {
         this.time++;
 
