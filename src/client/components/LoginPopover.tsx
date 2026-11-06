@@ -32,7 +32,7 @@ export function LoginPopover(props: PopoverProps): React.ReactElement {
   const { user, loading, refresh } = useContext(UserContext);
 
   const [username, setUsername] = useState("");
-  const [color, setColor] = useState("");
+  const [color, setColor] = useState("#ff0000");
 
   const onLogout = useCallback(async () => {
     await fetch("/api/auth", { method: "DELETE" });
@@ -99,7 +99,11 @@ export function LoginPopover(props: PopoverProps): React.ReactElement {
               )}
             />
 
-            <Button variant="contained" onClick={onGuestLogin}>
+            <Button
+              disabled={username === ""}
+              variant="contained"
+              onClick={onGuestLogin}
+            >
               Guest login
             </Button>
           </>
