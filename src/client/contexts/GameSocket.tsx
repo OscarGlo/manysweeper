@@ -44,6 +44,11 @@ export function GameSocketProvider({
   const navigate = useNavigate();
   const [messageListener, setMessageListener] =
     useState<(msg: Message) => void>();
+  const initialLoad = useRef(true);
+  // Force value on load
+  useEffect(() => {
+    initialLoad.current = true;
+  }, []);
 
   const messageSemaphore = useRef(new Semaphore());
 
@@ -71,9 +76,11 @@ export function GameSocketProvider({
   const { user } = useContext(UserContext);
 
   useEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false;
+      return;
+    }
     if (user == null && cookies.color == null) return;
-
-    console.log(user, cookies);
 
     const color = user ? Color.hex(user.color) : Color.hex(cookies.color);
     websocket?.send(

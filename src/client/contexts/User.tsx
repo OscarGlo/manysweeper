@@ -14,7 +14,7 @@ export const UserContext = createContext<UserValue>({
 });
 
 export function UserProvider({ children }: WithChildren) {
-  const [user, setUser] = useState<User>();
+  const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   async function fetchUser() {
