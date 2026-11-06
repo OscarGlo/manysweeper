@@ -19,12 +19,15 @@ export class AtlasTexture extends Texture {
     this.rows = rows;
     this.cols = cols;
 
-    this.img.addEventListener("load", () => {
-      this.tileSize = new Vector(
-        this.img.width / this.cols,
-        this.img.height / this.rows,
-      );
-    });
+    if (this.img.complete) this.updateTileSize();
+    else this.img.addEventListener("load", () => this.updateTileSize());
+  }
+
+  updateTileSize() {
+    this.tileSize = new Vector(
+      this.img.width / this.cols,
+      this.img.height / this.rows,
+    );
   }
 
   drawTile(
