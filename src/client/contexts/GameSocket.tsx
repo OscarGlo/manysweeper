@@ -73,11 +73,14 @@ export function GameSocketProvider({
   useEffect(() => {
     if (user == null && cookies.color == null) return;
 
+    console.log(user, cookies);
+
     const color = user ? Color.hex(user.color) : Color.hex(cookies.color);
     websocket?.send(
       serializeMessage([
         MessageType.USER,
-        0,
+        0, // id
+        0, // score
         color.h,
         color.s,
         color.l,
